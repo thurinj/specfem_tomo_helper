@@ -1,1 +1,1 @@
-# spcfm_tomo_helper
+# specfem-tomo-helper
