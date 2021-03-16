@@ -1,0 +1,17 @@
+*.xyz
+*.png
+*.ps
+
+build/
+__pycache__/
+*.egg
+*.egg-info/
+*.py[cod]
+*.so
+
+.DS_Store
+*.swp
+
+docs/_build
+docs/library/generated
+scripts/
