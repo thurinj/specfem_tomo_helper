@@ -4,7 +4,7 @@ from specfem_tomo_helper.projection import vp2rho, vp2vs, define_utm_projection
 from specfem_tomo_helper.fileimport import Nc_model
 from specfem_tomo_helper.utils import maptool, bilinear_interpolator, write_tomo_file
 
-path = '/Users/julienthurin/Documents/Dev/IRIS_Model_converter/SCEC_socal/SCEC-CVM-H-v15-1-n4.nc'
+path = '../data/SCEC_socal/SCEC-CVM-H-v15-1-n4.nc'
 
 # Two modes examples here. First is direct input.
 latitude_min = 3537939.0
@@ -43,7 +43,7 @@ interpolator.interpolation_parameters(
     param_holder.extent[0], param_holder.extent[1], dx,
     param_holder.extent[2], param_holder.extent[3], dy,
     z_min, z_max)
-    
+
 tomo = interpolator.interpolate([vp, vs, rho])
 
 write_tomo_file(tomo, interpolator, './')
