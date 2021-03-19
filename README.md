@@ -3,7 +3,7 @@
 `specfem_tomo_helper` is a program to generate the external tomography files required by specfem3D, from netCDF4 models available at [IRIS EMC](http://ds.iris.edu/ds/products/emc/). The intent of this code is to streamline the generation of these tomographic files.
 The Area of Interest (AoI) of these tomographic files can be selected by direct input (in UTM coordinates as in specfem), or with a graphical user interface to select the AoI.
 
->***:warning: This package is work in progress and NOT YET READY FOR PRODUCTIVE USE.***:
+>***:warning: This package is work in progress and NOT YET READY FOR PRODUCTIVE USE.***
 
 ## Installation
 ### Installing Python and Dependencies
@@ -50,7 +50,7 @@ Pip should install a few more dependencies while installing `specfem_tomo_helper
 
 ### Running specfem_tomo_helper
 From here, you can move to the examples folder, where you can try 2 examples for 2D and 3D interpolation.
->***:warning: Instructions for the 2D example will be provided soon.***:
+>***:warning: Instructions for the 2D example will be provided soon.***
 
 The first should be used for very dense models where trilinear interpolation would be too expensive to use. The included example is the SCEC south Californian model [EMC-CVM_H_v15_1](http://ds.iris.edu/ds/products/emc-cvm_h_v15_1/). This example performs the interpolation over a cartesian grid of each depth slice in the model. It could benefit from parallelization.
 
