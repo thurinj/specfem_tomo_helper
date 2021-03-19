@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 import scipy.interpolate
+import matplotlib.pyplot as plt
 
 class trilinear_interpolator():
     """ 3D interpolator. """
@@ -74,4 +75,5 @@ class trilinear_interpolator():
 
         self.tomo_xyz = np.vstack(
             (self.X_grid, self.Y_grid, self.Z_grid, interpolated_params)).T
+
         return self.tomo_xyz

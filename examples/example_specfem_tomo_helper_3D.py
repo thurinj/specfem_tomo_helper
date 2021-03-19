@@ -17,11 +17,11 @@ dz = 10000 # in m
 nc_model = Nc_model(path)
 # extract coordinates
 lon, lat, depth = nc_model.load_coordinates()
+# load model parameters
 vsv = nc_model.load_variable('vsv', fill_nan=False)
 
 # define pyproj custom projection
-myProj = define_utm_projection(30, 'N')
-
+myProj = define_utm_projection(34, 'N')
 # Second mode is here, with graphical area selection for interpolation.
 # The graphical selection tool takes an initial projection as argument. It can be modified using the GUI if it was not correctly specified.
 holder = maptool(nc_model, myProj)

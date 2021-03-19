@@ -11,9 +11,10 @@ import matplotlib.patches as mpatches
 from matplotlib.widgets import Slider, Button, RadioButtons, TextBox, RadioButtons
 import sys
 
+
 class param_container:
     def __init__(self, model, projection):
-        self.model=model
+        self.model = model
         self.projection = projection
         self.hemisphere = "+north"
         self.x0 = None
@@ -38,15 +39,13 @@ def maptool(model, myProj):
         points.append(projection(ux0, uy0, 'inverse'))
         return np.asarray(points).T[0, :], np.asarray(points).T[1, :]
 
-
     def print_result(x0, y0, easting, northing, projection):
         ux0, uy0 = projection(x0, y0)
-        print('LATITUDE_MIN                    = '+str(uy0)+'\n'
-              + 'LATITUDE_MAX                    = '+str(uy0+northing*1000)+'\n'
-              + 'LONGITUDE_MIN                   = '+str(ux0)+'\n'
-              + 'LONGITUDE_MAX                   = '+str(ux0+easting*1000))
-        return np.asarray([ux0, uy0, ux0+easting*1000, uy0+northing*1000])
-
+        print('LATITUDE_MIN                    = '+f'{uy0:.1f}'+'\n'
+              + 'LATITUDE_MAX                    = '+f'{uy0+northing*1e3:.1f}'+'\n'
+              + 'LONGITUDE_MIN                   = '+f'{ux0:.1f}'+'\n'
+              + 'LONGITUDE_MAX                   = '+f'{ux0+easting*1e3:.1f}')
+        return np.asarray([ux0, uy0, ux0+easting*1e3, uy0+northing*1e3])
 
     # Extract lat, lon info from model
     lat = holder.model.lat
@@ -77,7 +76,7 @@ def maptool(model, myProj):
     box_lon = Slider(ax_lon, 'Longitude', model_lon[0], model_lon[1], valinit=lon.min())
     holder.northing = 400
     holder.easting = 500
-    initial_UTM_zone = '11T'
+    initial_UTM_zone = myProj.crs.utm_zone
     button_easting = TextBox(east_box, 'Easting', initial=holder.easting)
     button_northing = TextBox(north_box, 'Northing', initial=holder.northing)
     button_utm = TextBox(utm_box, 'UTM zone', initial=initial_UTM_zone)
@@ -86,21 +85,21 @@ def maptool(model, myProj):
     # --------------------------------------------
     # Def updating figure functions
 
-
     def update(val):
         holder.y0 = box_lat.val
         holder.x0 = box_lon.val
-        projected = new_projection(holder.x0, holder.y0, holder.easting, holder.northing, holder.projection)
+        projected = new_projection(holder.x0, holder.y0, holder.easting,
+                                   holder.northing, holder.projection)
         l.set_ydata(projected[1])
         l.set_xdata(projected[0])
         fig.canvas.draw_idle()
 
-
     def submit_utm(text):
         holder.projection = Proj("+proj=utm +zone="+str(text) +
-                      " "+holder.hemisphere+" +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+                                 " "+holder.hemisphere+" +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
         coords = np.asarray(l.get_data()).T[0]
-        projected = new_projection(coords[0], coords[1], holder.easting, holder.northing, holder.projection)
+        projected = new_projection(coords[0], coords[1], holder.easting,
+                                   holder.northing, holder.projection)
         l.set_ydata(projected[1])
         l.set_xdata(projected[0])
         fig.canvas.draw_idle()
@@ -109,9 +108,10 @@ def maptool(model, myProj):
         hzdict = {'North': '+north', 'South': '+south'}
         holder.hemisphere = hzdict[label]
         holder.projection = Proj("+proj=utm +zone="+str(button_utm.text) +
-                      " "+holder.hemisphere+" +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+                                 " "+holder.hemisphere+" +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
         coords = np.asarray(l.get_data()).T[0]
-        projected = new_projection(coords[0], coords[1], holder.easting, holder.northing, holder.projection)
+        projected = new_projection(coords[0], coords[1], holder.easting,
+                                   holder.northing, holder.projection)
         l.set_ydata(projected[1])
         l.set_xdata(projected[0])
         fig.canvas.draw_idle()
@@ -120,7 +120,8 @@ def maptool(model, myProj):
         holder.easting = np.float(text)
         # print(easting)
         coords = np.asarray(l.get_data()).T[0]
-        projected = new_projection(coords[0], coords[1], holder.easting, holder.northing, holder.projection)
+        projected = new_projection(coords[0], coords[1], holder.easting,
+                                   holder.northing, holder.projection)
         # print(projected)
         l.set_ydata(projected[1])
         l.set_xdata(projected[0])
@@ -130,7 +131,8 @@ def maptool(model, myProj):
     def submit_northing(text):
         holder.northing = np.float(text)
         coords = np.asarray(l.get_data()).T[0]
-        projected = new_projection(coords[0], coords[1], holder.easting, holder.northing, holder.projection)
+        projected = new_projection(coords[0], coords[1], holder.easting,
+                                   holder.northing, holder.projection)
         l.set_ydata(projected[1])
         l.set_xdata(projected[0])
         fig.canvas.draw_idle()
@@ -138,24 +140,25 @@ def maptool(model, myProj):
     # function that print the utm coordinates and close the figure.
     def submit_save(function):
         coords = np.asarray(l.get_data()).T[0]
-        projected = new_projection(coords[0], coords[1], holder.easting, holder.northing, holder.projection)
+        projected = new_projection(coords[0], coords[1], holder.easting,
+                                   holder.northing, holder.projection)
         print_result(coords[0], coords[1], holder.easting, holder.northing, holder.projection)
 
         holder.ux0, holder.uy0 = holder.projection(coords[0], coords[1])
         holder.extent = np.asarray([holder.ux0, holder.ux0+holder.easting*1e3,
-                                   holder.uy0, holder.uy0+holder.northing*1e3])
+                                    holder.uy0, holder.uy0+holder.northing*1e3])
 
         plt.close('all')
         print(holder.projection)
 
     # --------------------------------------------
     # Def action deifinition
-    box_lat.on_changed(update) # run update() on slider action
-    box_lon.on_changed(update) # run update() on slider action
-    button_utm.on_submit(submit_utm) # run submit_utm() on textbox modification
-    button_easting.on_submit(submit_easting) # run submit_easting() on textbox modification
-    button_northing.on_submit(submit_northing) # run submit_northing() on textbox modification
-    button_save.on_clicked(submit_save) # run submit_save() and close fig on button press
+    box_lat.on_changed(update)  # run update() on slider action
+    box_lon.on_changed(update)  # run update() on slider action
+    button_utm.on_submit(submit_utm)  # run submit_utm() on textbox modification
+    button_easting.on_submit(submit_easting)  # run submit_easting() on textbox modification
+    button_northing.on_submit(submit_northing)  # run submit_northing() on textbox modification
+    button_save.on_clicked(submit_save)  # run submit_save() and close fig on button press
     radio.on_clicked(submit_zone)
 
     # --------------------------------------------
@@ -173,7 +176,6 @@ def maptool(model, myProj):
                                 holder.easting, holder.northing, holder.projection)[0],
                  new_projection(lon.min(), lat.min(),
                                 holder.easting, holder.northing, holder.projection)[1])
-    ax.scatter(-117.7840,33.9133)
 
     plt.show()
     return(holder)
