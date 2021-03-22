@@ -3,8 +3,13 @@
 from specfem_tomo_helper.projection import vp2rho, vp2vs, define_utm_projection
 from specfem_tomo_helper.fileimport import Nc_model
 from specfem_tomo_helper.utils import maptool, bilinear_interpolator, write_tomo_file
+import subprocess
+import os
 
 path = '../data/SCEC-CVM-H-v15-1-n4.nc'
+
+if not os.path.isfile(path):
+    subprocess.call(['wget', '-P', '../data/', 'http://ds.iris.edu/files/products/emc/emc-files/SCEC-CVM-H-v15-1-n4.nc'])
 
 # Mandatory inputs:
 dy = 1000  # in m
