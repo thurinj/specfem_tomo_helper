@@ -50,11 +50,19 @@ Pip should install a few more dependencies while installing `specfem_tomo_helper
 
 ### Running specfem_tomo_helper
 From here, you can move to the examples folder, where you can try 2 examples for 2D and 3D interpolation.
->***:warning: Instructions for the 2D example will be provided soon.***
+In both instances, the mandatory user inputs are `dx` (easting sampling in m), `dy` (northing sampling in m), `dz` (depth sampling in m), `zmin` and `zmax` (min and max depth in km, with positives upward).
 
-The first should be used for very dense models where trilinear interpolation would be too expensive to use. The included example is the SCEC south Californian model [EMC-CVM_H_v15_1](http://ds.iris.edu/ds/products/emc-cvm_h_v15_1/). This example performs the interpolation over a cartesian grid of each depth slice in the model. It could benefit from parallelization.
+#### Bilinear interpolation
+The first should be used for very dense models where trilinear interpolation would be too expensive to use. The included example is the SCEC south Californian model [EMC-CVM_H_v15_1](http://ds.iris.edu/ds/products/emc-cvm_h_v15_1/). This example performs the interpolation over a cartesian grid at each depth slice defined in the netCDF model. This example proposes two user modes. 1) directly input spcefem3D Mesh_Par_File latitude and longitude informations to select the interpolation bounds (`mode = 1` in the script). 2) interactive graphical user interface based on `matplotlib` and `cartopy` (`mode = 2` in the script).
 
-The latter example is the option to favor for sparse models. It was tested on 1° lat/lon and 0.5° lat/lon resolution models and proved to be perfectly appropriate.
+You can run the trilinear interpolator code with
+```
+$ python example_specfem_tomo_helper.py
+```
+The mode variable can be changed in the source code depending on users' preference.
+
+#### Trilinear interpolation
+The latter example (3D interpolation) is the option to favor for sparse models. It was tested on 1° lat/lon and 0.5° lat/lon resolution models and proved to be perfectly appropriate.
 The test model included is the [CSEM_Europe_2019.12.01](http://ds.iris.edu/ds/products/emc-csem_europe/).
 
 You can run the trilinear interpolator code with
