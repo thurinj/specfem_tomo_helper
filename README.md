@@ -69,3 +69,16 @@ You can run the trilinear interpolator code with
 ```
 $ python example_specfem_tomo_helper_3D.py
 ```
+
+### What's coming next - Contribution ideas
+`specfem_tomo_helper` has only the most basic features so far. It functions with two modes, namely a bilinear and a trilinear interpolation mode, depending on the spatial sampling of the original netCDF model to interpolate.
+
+
+There are currently two features that would make the code more complete and would be great additions. Any help contributing to the code, or specifically with these two items are welcome:
+
+#### Rotated domain
+As of now, the regular interpolation grid can only be along the N-E directions. It would be desirable to be able to interpolate onto any rotated cartesian grid, such that the model size can be optimized to save on numerical modeling costs afterward.
+
+#### Multiple tomographic files
+The current bilinear interpolator only outputs a single tomographic file with regular x, y and z sampling. However, on very dense models and large modeling domains, the `tomography_file.xyz` can rapidly grow in size and become impractical to work with.
+To mitigate that issue, the model domain can be split in several vertical chunks with varying spatial sampling (with the chunks becoming coarser with depth), and read as several distinct tomographic files by specfem3D.
