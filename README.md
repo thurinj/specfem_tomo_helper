@@ -21,7 +21,6 @@ Then create a new environment. You don’t have to, but using a new environment 
  $ conda create --name sth
  ```
 
-
  This will create a new conda environment based on the latest Python released (3.9) named `sth`. Activate it with
 
  ```
