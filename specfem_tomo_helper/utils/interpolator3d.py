@@ -40,7 +40,7 @@ class trilinear_interpolator():
                                               self.xspecfem_max+self.dx*2, self.dx)
         self.y_interp_coordinates = np.arange(self.yspecfem_min-self.dy,
                                               self.yspecfem_max+self.dy*2, self.dy)
-        self.z_interp_coordinates = np.arange(self.zmin*1e3, self.zmax*1e3+self.dz, self.dz)
+        self.z_interp_coordinates = np.flip(np.arange(self.zmax*1e3, self.zmin*1e3+self.dz, -self.dz))
         # Create the meshgrid from the previously computed coordinates
         Z, Y, X = np.meshgrid(self.z_interp_coordinates,
                               self.y_interp_coordinates,
