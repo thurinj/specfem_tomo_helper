@@ -31,7 +31,7 @@ Remember to activate it every time you want to use `specfem_tomo_helper`. You ca
 
  Now install pip and cartopy with
  ```
- $ conda install pip cartopy
+ $ conda install pip cartopy pyproj==3.0.1
  ```
 
  ### Installing specfem_tomo_helper
