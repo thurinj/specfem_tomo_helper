@@ -43,7 +43,7 @@ class Nc_model:
 
         Output format: lon, lat, depth
         """
-        if self.dataset.variables['depth'].positive == 'up':
+        if self.dataset.geospatial_vertical_positive == 'up':
             self.depth = np.array(self.dataset.variables['depth'])
         else:
             self.depth = np.array(self.dataset.variables['depth'])*-1
