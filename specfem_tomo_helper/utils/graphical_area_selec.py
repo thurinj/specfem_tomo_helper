@@ -23,7 +23,10 @@ class param_container:
         self.northing = None
 
 
-def maptool(model, myProj):
+def maptool(model, myProj, param = None):
+    """
+
+    """
 
     holder = param_container(model, myProj)
 
@@ -51,8 +54,8 @@ def maptool(model, myProj):
     lat = holder.model.lat
     lon = holder.model.lon
     # Extracting coordinates and creating model polygon
-    model_lat = lat.min(), lat.max()
-    model_lon = lon.min(), lon.max()
+    model_lat = [lat.min(), lat.max()]
+    model_lon = [lon.min(), lon.max()]
     model_x_coordinates, model_y_coordinates = np.meshgrid(model_lon, model_lat, indexing="ij")
     poly_corners = np.vstack((model_x_coordinates.flatten(),
                               np.roll(model_y_coordinates.T.flatten(), 1))).T
@@ -166,6 +169,16 @@ def maptool(model, myProj):
     ax = plt.axes(projection=ccrs.PlateCarree())
     # ax.stock_img()
     ax.coastlines()
+    # Boundary case handling
+    if model_lon[0] < -179:
+        model_lon[0] = -179
+    if model_lon[1] > 179:
+        model_lon[1] = 179
+    if model_lat[0] < -89:
+        model_lat[0] = -89
+    if model_lat[1] > 89:
+        model_lat[1] = 89
+
     ax.set_extent([model_lon[0]-1, model_lon[1]+1, model_lat[0]-1, model_lat[1]+1])
     # Plot model bounds (red)
     poly = mpatches.Polygon(poly_corners, closed=True, ec='r', fill=False,
@@ -176,6 +189,14 @@ def maptool(model, myProj):
                                 holder.easting, holder.northing, holder.projection)[0],
                  new_projection(lon.min(), lat.min(),
                                 holder.easting, holder.northing, holder.projection)[1])
+
+    if not param == None:
+        LON,LAT = np.meshgrid(lon, lat)
+
+        if len(lon) * len(lat) <= 400*400:
+            print(f'CAUTION - The displayed parameter grid is very dense and will compromise reactivity of the GUI \n')
+            print(f'Consider removing the optional param={param.name} input or use param=None instead for better interactive experience ')
+        ax.scatter(LON,LAT, s = param.values[:,:,8]*0+0.01, c='k')
 
     plt.show()
     return(holder)
