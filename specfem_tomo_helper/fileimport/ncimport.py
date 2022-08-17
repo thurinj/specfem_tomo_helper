@@ -58,15 +58,16 @@ class Nc_model:
         """
         dims = self.dataset.variables[str(varname)].dimensions
         var_data = np.array(self.dataset.variables[str(varname)][:, :, :].data)
-
-        if self.dataset.variables[str(varname)].mask:
+        # Check if mask is set to True, and mask actually spans all model cells.
+        if (self.dataset.variables[str(varname)].mask and
+            np.shape(self.dataset.variables[str(varname)]) == np.shape(self.dataset.variables[str(varname)][:,:,:].mask)):
             var_mask = np.array(self.dataset.variables[str(varname)][:, :, :].mask)
             var_data[var_mask] = np.nan
+        if dims == ('depth', 'latitude', 'longitude'):
+            var_data = np.rot90(var_data.T,k=1)
         if fill_nan is True:
             for depth_id in len(self.depth)-2-np.arange(len(self.depth)-1):
                 var_data[:,:,depth_id][np.isnan(var_data[:,:,depth_id])] = var_data[:,:,depth_id+1][np.isnan(var_data[:,:,depth_id])]
-        if dims == ('depth', 'latitude', 'longitude'):
-            var_data = np.rot90(var_data.T,k=1)
 
         return Model_array(varname, var_data)
 
