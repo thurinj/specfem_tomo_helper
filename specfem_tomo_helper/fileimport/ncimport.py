@@ -2,6 +2,7 @@
 
 import netCDF4
 import numpy as np
+from scipy.interpolate import NearestNDInterpolator
 
 
 class Nc_model:
@@ -65,11 +66,27 @@ class Nc_model:
             var_data[var_mask] = np.nan
         if dims == ('depth', 'latitude', 'longitude'):
             var_data = np.rot90(var_data.T,k=1)
-        if fill_nan is True:
+
+        if fill_nan == 'vertical':
             for depth_id in len(self.depth)-2-np.arange(len(self.depth)-1):
                 var_data[:,:,depth_id][np.isnan(var_data[:,:,depth_id])] = var_data[:,:,depth_id+1][np.isnan(var_data[:,:,depth_id])]
 
+        elif fill_nan == 'lateral':
+            "Initiating lateral filtering"
+            for depth_id in len(self.depth)-1-np.arange(len(self.depth)):
+                var_data[:,:,depth_id] = self._lateral_2D_NN(var_data[:,:,depth_id])
+
         return Model_array(varname, var_data)
+
+    def _lateral_2D_NN(self, array):
+        mask = np.where(~np.isnan(array))
+        if np.prod(np.shape(array)) == len(mask[0]):
+            return array
+        elif len(mask[0]) == 0 :
+            return np.zeros_like(array)
+        else:
+            interp_NN = NearestNDInterpolator(np.transpose(mask), array[mask])
+            return interp_NN(*np.indices(array.shape))
 
 
 

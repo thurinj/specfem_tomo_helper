@@ -22,7 +22,7 @@ nc_model = Nc_model(path)
 lon, lat, depth = nc_model.load_coordinates()
 # load model parameters
 # In this case the interpolated model is vsv.
-vsv = nc_model.load_variable('vsv', fill_nan=False)
+vsv = nc_model.load_variable('vsv', fill_nan='vertical')
 
 # define pyproj custom projection
 myProj = define_utm_projection(34, 'N')

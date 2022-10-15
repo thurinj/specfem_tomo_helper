@@ -23,9 +23,9 @@ nc_model = Nc_model(path)
 # extract coordinates
 lon, lat, depth = nc_model.load_coordinates()
 # Load the 3 model parameters from the netCDF model
-vp = nc_model.load_variable('vp', fill_nan=True)
-vs = nc_model.load_variable('vs', fill_nan=True)
-rho = nc_model.load_variable('rho', fill_nan=True)
+vp = nc_model.load_variable('vp', fill_nan='lateral')
+vs = nc_model.load_variable('vs', fill_nan='lateral')
+rho = nc_model.load_variable('rho', fill_nan='lateral')
 # fill_nan is set to True here, as the shallow layers of the model contain nan values
 
 # define pyproj custom projection. 11 North for South California
