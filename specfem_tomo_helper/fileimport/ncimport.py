@@ -65,20 +65,12 @@ class Nc_model:
             var_mask = np.array(self.dataset.variables[str(varname)][:, :, :].mask)
             var_data[var_mask] = np.nan
         if dims == ('depth', 'latitude', 'longitude'):
-<<<<<<< HEAD
-            var_data = np.rot90(var_data.T,k=1)
-        
-        if self.dataset.id=='Alaska.JointInversion_RF+Vph+HV-1.Berg.2020':
-            var_data=np.flipud(var_data) # adapt for berg2020 model
-
-        if varname=='rhofinal' and np.nanmean(var_data[:,:,0])<100:
-            print('converting rho')
-            var_data=var_data*1000
-=======
-            # Move depth axis to the last column.
             var_data = np.moveaxis(var_data, 0, -1)
->>>>>>> 50979bd979a9db5104fb752a2731f3058ac89ccf
-
+            # Move depth axis to the last column.
+        
+        if 'rho' in varname and np.nanmean(var_data[:,:,0])<50:
+            var_data=var_data*1000
+            
         if fill_nan == 'vertical':
             for depth_id in len(self.depth)-2-np.arange(len(self.depth)-1):
                 var_data[:,:,depth_id][np.isnan(var_data[:,:,depth_id])] = var_data[:,:,depth_id+1][np.isnan(var_data[:,:,depth_id])]
