@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+# example provided for 2.5d interpolation for 
 from specfem_tomo_helper.projection import vp2rho, vp2vs, define_utm_projection
 from specfem_tomo_helper.fileimport import Nc_model
 from specfem_tomo_helper.utils import maptool, write_tomo_file,linear_interpolator1d2d
@@ -26,14 +26,10 @@ nc_model = Nc_model(path)
 # extract coordinates
 lon, lat, depth = nc_model.load_coordinates()
 # Load the 3 model parameters from the netCDF model
-vp = nc_model.load_variable('vpfinal', fill_nan=True)
-vs = nc_model.load_variable('vsfinal', fill_nan=True)
-rho = nc_model.load_variable('rhofinal', fill_nan=True)
-# flip the model 
-if nc_model.dataset.id=='Alaska.JointInversion_RF+Vph+HV-1.Berg.2020':
-    vp.values=np.flipud(vp.values)
-    vs.values=np.flipud(vs.values)
-    rho.values=np.flipud(rho.values*1000)
+vp = nc_model.load_variable('vpfinal', fill_nan='vertical')
+vs = nc_model.load_variable('vsfinal', fill_nan='vertical')
+rho = nc_model.load_variable('rhofinal', fill_nan='vertical')
+
 # fill_nan is set to True here, as the shallow layers of the model contain nan values
 
 # define pyproj custom projection. 
