@@ -12,15 +12,15 @@ import matplotlib.pyplot as plt
 path = '../data/Alaska.JointInversion-RF+Vph+HV-1.Berg.2020-nc4.nc'
 
 if not os.path.isfile(path):
-    subprocess.call(['wget', '-P', '../data/', 'http://ds.iris.edu/files/products/emc/emc-files/SCEC-CVM-H-v15-1-n4.nc'])
+    subprocess.call(['wget', '-P', '../data/', 'http://ds.iris.edu/files/products/emc/emc-files/Alaska.JointInversion-RF+Vph+HV-1.Berg.2020-nc4.nc'])
 
 # Mandatory inputs:
-dy = 1000  # in m
-dx = 1000  # in m
+dy = 3000  # in m
+dx = 3000  # in m
 # In the 2D interpolation scheme, each depth value of the model is used as depth value. Therefore there is no dz parameters.
 z_min = -34 # in km
 z_max = -8 # in km
-dz=1000 # in meters
+dz=3000 # in meters
 # load netCDF model
 nc_model = Nc_model(path)
 # extract coordinates
