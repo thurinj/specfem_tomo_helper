@@ -22,12 +22,16 @@ def define_utm_projection(utm_zone: int, hemisphere: str) -> pyproj.proj.Proj:
     from lat/lon to utm easting and northing. If desired, users can handle the
     projection themselves by defining a custom pyproj.proj.Proj object.
 
-    TODO : change the Proj synthax with the 'new' pythonic inputs option.
-    """
+    Returns
+    ----------
+    proj : pyproj.proj.Proj
+        The projection object.
 
-    if not isinstance(utm_zone, int):
-        raise TypeError('utm_zone should be an int')
-    if not (hemisphere == 'N' or hemisphere == 'S'):
-        raise ValueError('hemisphere should be N or S')
-    utm_projection = Proj("+proj=utm +zone="+str(utm_zone)+", +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
-    return utm_projection
+    """
+    if hemisphere == 'N':
+        proj = Proj(proj='utm', zone=utm_zone, ellps='WGS84', datum='WGS84', units='m')
+    elif hemisphere == 'S':
+        proj = Proj(proj='utm', zone=utm_zone, ellps='WGS84', datum='WGS84', units='m', south=True)
+    else:
+        raise ValueError('Hemisphere must be either N or S')
+    return proj
