@@ -19,7 +19,7 @@ class trilinear_interpolator():
         self.utm_y = utm_y.flatten()
 
     def interpolation_parameters(self, xspecfem_min, xspecfem_max, dx, yspecfem_min, yspecfem_max, dy, zspecfem_min, zspecfem_max, dz):
-        """ Initialise the interpolation grid from a set of coordinates parameters. """
+        """ Initialize the interpolation grid from a set of coordinates parameters. """
         # xspecfem_min/max corresponds to the Longitude min/max in Mesh_Par_File
         self.xspecfem_min = xspecfem_min
         self.xspecfem_max = xspecfem_max
@@ -31,16 +31,16 @@ class trilinear_interpolator():
         # dy is the northing sampling rate in m
         self.dy = dy
         # zmin and zmax are the desired interpolation bounds in km. zmin should be the positive topographic values (the "top" of the model), zmax is the maximum depth (should be negative in the vast majorities of instances).
-        self.zmin = zspecfem_min
-        self.zmax = zspecfem_max
+        self.zmin = zspecfem_min * 1e3  # Convert to meters
+        self.zmax = zspecfem_max * 1e3  # Convert to meters
         # dz is the depth sampling rate in m
         self.dz = dz
         # Here are defined the interpolation coordinates as a regular grid in utm coordinates.
-        self.x_interp_coordinates = np.arange(self.xspecfem_min-self.dx,
-                                              self.xspecfem_max+self.dx*2, self.dx)
-        self.y_interp_coordinates = np.arange(self.yspecfem_min-self.dy,
-                                              self.yspecfem_max+self.dy*2, self.dy)
-        self.z_interp_coordinates = np.flip(np.arange(self.zmax*1e3, self.zmin*1e3+self.dz, -self.dz))
+        self.x_interp_coordinates = np.arange(self.xspecfem_min - self.dx,
+                                            self.xspecfem_max + self.dx * 2, self.dx)
+        self.y_interp_coordinates = np.arange(self.yspecfem_min - self.dy,
+                                            self.yspecfem_max + self.dy * 2, self.dy)
+        self.z_interp_coordinates = np.flip(np.arange(self.zmax, self.zmin - self.dz, -self.dz))
         # Create the meshgrid from the previously computed coordinates
         Z, Y, X = np.meshgrid(self.z_interp_coordinates,
                               self.y_interp_coordinates,

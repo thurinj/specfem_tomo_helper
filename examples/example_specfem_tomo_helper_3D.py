@@ -8,8 +8,8 @@ import numpy as np
 
 # INPUTS ARE HERE.
 path = '../data/csem-europe-2019.12.01.nc'
-dx = 10000
-dy = 10000
+dx = 10000 # in m
+dy = 10000 # in m
 z_min = -250  # in km
 z_max = 0  # in km
 dz = 10000  # in m
