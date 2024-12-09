@@ -2,7 +2,9 @@
 
 from specfem_tomo_helper.projection import vp2rho, vp2vs, vs2vp, define_utm_projection
 from specfem_tomo_helper.fileimport import Nc_model
-from specfem_tomo_helper.utils import maptool, trilinear_interpolator, write_tomo_file
+from specfem_tomo_helper.utils import trilinear_interpolator, write_tomo_file
+from specfem_tomo_helper.utils.pyqt_gui import MainWindow
+from PyQt5.QtWidgets import QApplication
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -28,8 +30,11 @@ vsv = nc_model.load_variable('vsv', fill_nan='vertical')
 myProj = define_utm_projection(34, 'N')
 # Second mode is here, with graphical area selection for interpolation.
 # The graphical selection tool takes an initial projection as argument. It can be modified using the GUI if it was not correctly specified.
-gui_parameters = maptool(nc_model, myProj)
-interpolator = trilinear_interpolator(nc_model, gui_parameters.projection)
+app = QApplication([])
+gui_parameters = MainWindow()
+gui_parameters.show()
+app.exec_()
+interpolator = trilinear_interpolator(nc_model, myProj)
 interpolator.interpolation_parameters(gui_parameters.extent[0], gui_parameters.extent[1], dx,
                                       gui_parameters.extent[2], gui_parameters.extent[3], dy,
                                       z_min, z_max, dz)

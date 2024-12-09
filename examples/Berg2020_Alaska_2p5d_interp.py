@@ -2,7 +2,7 @@
 
 from specfem_tomo_helper.projection import vp2rho, vp2vs, define_utm_projection
 from specfem_tomo_helper.fileimport import Nc_model
-from specfem_tomo_helper.utils import maptool, bilinear_interpolator, write_tomo_file
+from specfem_tomo_helper.utils import maptool, linear_interpolator1d2d, write_tomo_file
 import subprocess
 import os
 import numpy as np
@@ -52,20 +52,20 @@ if mode == 1:
     # longitude_min                   = -928831.7
     # longitude_max                   = 1671168.3
     # Initialize interpolator with model and UTM projection
-    interpolator = bilinear_interpolator(nc_model, myProj)
+    interpolator = linear_interpolator1d2d(nc_model, myProj)
     interpolator.interpolation_parameters(longitude_min, longitude_max, dx,
                                           latitude_min, latitude_max, dy,
-                                          z_min, z_max)
+                                          z_min, z_max, dz)
 
 if mode == 2:
     # Second mode with graphical area selection for interpolation.
     # The GUI window might freeze during the interpolation, instead of closing. Don't panic!
     gui_parameters = maptool(nc_model, myProj)
-    interpolator = bilinear_interpolator(nc_model, myProj)
+    interpolator = linear_interpolator1d2d(nc_model, myProj)
     interpolator.interpolation_parameters(
         gui_parameters.extent[0], gui_parameters.extent[1], dx,
         gui_parameters.extent[2], gui_parameters.extent[3], dy,
-        z_min, z_max)
+        z_min, z_max, dz)
 
 # Compute the tomography array
 tomo = interpolator.interpolate([vp, vs, rho])
