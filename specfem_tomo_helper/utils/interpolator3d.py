@@ -1,8 +1,5 @@
-#!/usr/bin/env python
 import numpy as np
-import pandas as pd
-import scipy.interpolate
-import matplotlib.pyplot as plt
+from scipy.interpolate import LinearNDInterpolator
 
 class trilinear_interpolator():
     """ 3D interpolator. """
@@ -36,70 +33,47 @@ class trilinear_interpolator():
         # dz is the depth sampling rate in m
         self.dz = dz
         # Here are defined the interpolation coordinates as a regular grid in utm coordinates.
-        self.x_interp_coordinates = np.arange(self.xspecfem_min - self.dx,
-                                            self.xspecfem_max + self.dx * 2, self.dx)
-        self.y_interp_coordinates = np.arange(self.yspecfem_min - self.dy,
-                                            self.yspecfem_max + self.dy * 2, self.dy)
-        self.z_interp_coordinates = np.flip(np.arange(self.zmax, self.zmin - self.dz, -self.dz))
-        # Create the meshgrid from the previously computed coordinates
-        Z, Y, X = np.meshgrid(self.z_interp_coordinates,
-                              self.y_interp_coordinates,
-                              self.x_interp_coordinates, indexing='ij')
-        # Transform the (nz, ny, nx) meshgrid arrays, to 3 vectors.
-        self.Y_grid = Y.flatten()
-        self.X_grid = X.flatten()
-        self.Z_grid = Z.flatten()
-
-    def interpolation_grid(self):
-        """ This function can be used if you wish to simply return the interpolation grid coordinates (only the easting and northing). It might be useful to vizualise the interpolation points on a map. """
-        self.x_interp_coordinates = np.arange(self.xspecfem_min-self.dx,
-                                              self.xspecfem_max+self.dx*2, self.dx)
-        self.y_interp_coordinates = np.arange(self.yspecfem_min-self.dy,
-                                              self.yspecfem_max+self.dy*2, self.dy)
-        Y, X = np.meshgrid(self.y_interp_coordinates, self.x_interp_coordinates, indexing='ij')
-        self.Y_grid = Y.flatten()
-        self.X_grid = X.flatten()
-        return (self.x_interp_coordinates, self.y_interp_coordinates)
+        self.x_interp_coordinates = np.arange(self.xspecfem_min, self.xspecfem_max + self.dx, self.dx)
+        self.y_interp_coordinates = np.arange(self.yspecfem_min, self.yspecfem_max + self.dy, self.dy)
+        self.z_interp_coordinates = np.arange(self.zmin, self.zmax + self.dz, self.dz)
+        self.X_grid, self.Y_grid, self.Z_grid = np.meshgrid(self.x_interp_coordinates, self.y_interp_coordinates, self.z_interp_coordinates, indexing='ij')
 
     def interpolate(self, model_param):
-        """ Computes the interpolated model on a regular UTM grid from the predefined interpolation grid and the netCDF model_param (model paramters such as vp, vs, rho).
-        Prior to using this function, the trilinear_interpolator.interpolation_parameters() function must be run. After that, the interpolation grid and coordinates are generated withing the interpolator object.
-
-        ------------
-        example:
-        interpolator.interpolation_parameters(longitude_min, longitude_max, dx,
-                                              latitude_min, latitude_max, dy,
-                                              z_min, z_max)
-        tomography_xyz = interpolator.interpolate([vp, vs, rho])
-        """
-        # Check that the model parameters are within a list, and create a list from the input values, to avoid syntax errors.
-        if not type(model_param) is list:
-            model_param = [model_param]
-        param_names = [param.name for param in model_param]
-        # Compute the original model sampling, and define the required padding lenght to make sure the interpolation domain lies within the original model.
-        model_pad_y = np.diff(self.lat[0:2])[0]*111000
-        model_pad_x = np.diff(self.lon[0:2])[0]*111000
-        # Set model parameters array to vector list to create the required data structure
         model_values = [param.values.flatten() for param in model_param]
-        data_array = np.vstack(
-            (self.x.flatten(), self.y.flatten(), self.z.flatten()*1e3, model_values, self.utm_x, self.utm_y)).T
-        # Create a pandas dataframe from the data_array above.
-        dframe = pd.DataFrame(data=data_array, columns=[
-                             'lon', 'lat', 'depth'] + param_names + ['utm_x', 'utm_y'])
-        # Select the desired model bounds for interpolation, with the pandas.DataFrame filtering option. This reduces the cost of interpolation withing a dense 2D model by getting rid of unecessary coordinates.
-        filtered_df = dframe[(dframe['utm_y'] >= self.Y_grid.min()-model_pad_y) & (dframe['utm_y'] <= self.Y_grid.max()+model_pad_y) & (
-            dframe['utm_x'] >= self.X_grid.min()-model_pad_x) & (dframe['utm_x'] <= self.X_grid.max()+model_pad_x)]
-        # Define the interpolation parameters:
-        # 1) Taking the coordinates vector
-        utm_xyz = np.vstack((filtered_df['utm_x'], filtered_df['utm_y'], filtered_df['depth'])).T
-        # 2) Taking the correspondig parameters to interpolate
-        filtered_model_param = np.asarray(filtered_df[param_names]).T
-        # Actual interpolation for each params in the model_param list.
-        interpolated_params = [scipy.interpolate.LinearNDInterpolator(utm_xyz, param)(
-            self.X_grid, self.Y_grid, self.Z_grid)
-            for param in filtered_model_param]
-        # Create the final array with the structure required for specfem (lon, lat, depth, model parameters)
-        self.tomo_xyz = np.vstack(
-            (self.X_grid, self.Y_grid, self.Z_grid, interpolated_params)).T
 
-        return self.tomo_xyz
+        utm_x, utm_y = self.utm_x, self.utm_y
+        lon, lat, depth = self.x.flatten(), self.y.flatten(), self.z.flatten() * 1e3
+
+        model_pad_y = np.diff(self.lat[:2])[0] * 111000
+        model_pad_x = np.diff(self.lon[:2])[0] * 111000
+
+        valid_indices = np.where(
+            (utm_y >= self.Y_grid.min() - model_pad_y) &
+            (utm_y <= self.Y_grid.max() + model_pad_y) &
+            (utm_x >= self.X_grid.min() - model_pad_x) &
+            (utm_x <= self.X_grid.max() + model_pad_x)
+        )[0]
+
+        utm_x, utm_y, lon, lat, depth = utm_x[valid_indices], utm_y[valid_indices], lon[valid_indices], lat[valid_indices], depth[valid_indices]
+        model_values = [values[valid_indices] for values in model_values]
+
+        utm_xyz = np.vstack((utm_x, utm_y, depth)).T
+
+        interpolated_params = []
+        interp_points = np.vstack((self.X_grid.flatten(), self.Y_grid.flatten(), self.Z_grid.flatten())).T
+        for values in model_values:
+            interpolator = LinearNDInterpolator(utm_xyz, values)
+            interpolated_params.append(interpolator(interp_points).reshape(self.X_grid.shape))
+
+        tomo_volume = np.stack(interpolated_params, axis=-1)
+
+        final_tomo_xyz = np.column_stack((
+            self.X_grid.flatten(order='F'), 
+            self.Y_grid.flatten(order='F'), 
+            self.Z_grid.flatten(order='F')
+        ))
+
+        for param in interpolated_params:
+            final_tomo_xyz = np.column_stack((final_tomo_xyz, param.flatten(order='F')))
+
+        return final_tomo_xyz
