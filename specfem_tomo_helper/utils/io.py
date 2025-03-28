@@ -21,7 +21,7 @@ def write_tomo_file(tomo, interpolator, path):
     # Create the body of the model file
     MODEL_BODY = _create_tomo_df(tomo[:,0], tomo[:,1], tomo[:,2], tomo[:,3], tomo[:,4], tomo[:,5])
     # Append the two text files
-    TOMO_XYZ_DF = HEADER.append(MODEL_BODY)
+    TOMO_XYZ_DF = pd.concat([HEADER, MODEL_BODY], ignore_index=True)
     # Write file
     TOMO_XYZ_DF.to_csv(path+'tomography_model.xyz', index=False, header=False, sep=" ", float_format="%.1f")
 
@@ -62,7 +62,7 @@ def _write_header(interp_X,interp_Y,interp_Z,interp_vp,interp_vs, interp_rho, x_
     return(HEADER)
 
 def _create_tomo_df(interp_X,interp_Y,interp_Z,vp_values, vs_values, rho_values):
-    GRID_DIM = np.product(np.asarray(np.shape(interp_X)))
+    GRID_DIM = np.prod(np.asarray(np.shape(interp_X)))
     X_COORDS = interp_X.reshape(1, GRID_DIM).T
     Y_COORDS = interp_Y.reshape(1, GRID_DIM).T
     Z_COORDS = interp_Z.reshape(1, GRID_DIM).T
