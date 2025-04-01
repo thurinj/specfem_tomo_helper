@@ -9,7 +9,10 @@ import matplotlib.pyplot as plt
 import cartopy.feature as cfeature
 import matplotlib.patches as mpatches
 from matplotlib.widgets import Slider, Button, RadioButtons, TextBox, RadioButtons
+import threading
 import sys
+import os
+import time
 
 
 class param_container:
@@ -80,6 +83,9 @@ def maptool(model, myProj, param = None):
     holder.northing = 400
     holder.easting = 500
     initial_UTM_zone = myProj.crs.utm_zone
+    # Remove potential trailing N or S
+    if initial_UTM_zone[-1] == 'N' or initial_UTM_zone[-1] == 'S':
+        initial_UTM_zone = initial_UTM_zone[:-1]
     button_easting = TextBox(east_box, 'Easting', initial=holder.easting)
     button_northing = TextBox(north_box, 'Northing', initial=holder.northing)
     button_utm = TextBox(utm_box, 'UTM zone', initial=initial_UTM_zone)
@@ -120,8 +126,8 @@ def maptool(model, myProj, param = None):
         fig.canvas.draw_idle()
 
     def submit_easting(text):
-        holder.easting = np.float(text)
-        # print(easting)
+        holder.easting = int(text)
+        # print(holder.easting)
         coords = np.asarray(l.get_data()).T[0]
         projected = new_projection(coords[0], coords[1], holder.easting,
                                    holder.northing, holder.projection)
@@ -132,7 +138,8 @@ def maptool(model, myProj, param = None):
 
     #
     def submit_northing(text):
-        holder.northing = np.float(text)
+        holder.northing = int(text)
+        # print(holder.northing)
         coords = np.asarray(l.get_data()).T[0]
         projected = new_projection(coords[0], coords[1], holder.easting,
                                    holder.northing, holder.projection)
@@ -151,7 +158,7 @@ def maptool(model, myProj, param = None):
         holder.extent = np.asarray([holder.ux0, holder.ux0+holder.easting*1e3,
                                     holder.uy0, holder.uy0+holder.northing*1e3])
 
-        plt.close('all')
+        plt.close(fig)
         print(holder.projection)
 
     # --------------------------------------------
