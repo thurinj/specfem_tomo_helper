@@ -71,3 +71,27 @@ def _create_tomo_df(interp_X,interp_Y,interp_Z,vp_values, vs_values, rho_values)
     RHO = rho_values.reshape(1, GRID_DIM).T
     TOMO_DF = np.hstack((X_COORDS, Y_COORDS, Z_COORDS, VP*1000, VS*1000, RHO))
     return(pd.DataFrame(data=TOMO_DF))
+
+
+def write_anisotropic_tomo_file(tomo, interpolator, path):
+    """ Write a tomography file with full anisotropic stiffness tensor (cij) + density (rho).
+    Format: x y z c11 c12 c13 c14 c15 c16 c22 ... c66 rho
+
+    The 4th line of the header is somehow ad-hoc and might need to be revised in the future.
+    """
+    if not path.endswith('/'):
+        path += '/'
+
+    HEADER = _write_header(
+        tomo[:, 0], tomo[:, 1], tomo[:, 2],
+        tomo[:, 3],  # c11 
+        tomo[:, 19],  # c44
+        tomo[:, -1],  # rho
+        interpolator.x_interp_coordinates,
+        interpolator.y_interp_coordinates,
+        interpolator.z_interp_coordinates,
+    )
+
+    MODEL_BODY = pd.DataFrame(tomo)
+    TOMO_XYZ_DF = pd.concat([HEADER, MODEL_BODY], ignore_index=True)
+    TOMO_XYZ_DF.to_csv(path + 'tomography_model.xyz', index=False, header=False, sep=" ", float_format="%.1f")
