@@ -108,7 +108,7 @@ class trilinear_interpolator():
                 data,
                 method='linear',
                 bounds_error=False,
-                fill_value=np.nan
+                fill_value=None
             )
 
             # Now do chunked interpolation to show progress
