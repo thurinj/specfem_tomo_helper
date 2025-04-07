@@ -85,7 +85,7 @@ def write_anisotropic_tomo_file(tomo, interpolator, path):
     HEADER = _write_header(
         tomo[:, 0], tomo[:, 1], tomo[:, 2],
         tomo[:, 3],  # c11 
-        tomo[:, 19],  # c44
+        tomo[:, 18],  # c44
         tomo[:, -1],  # rho
         interpolator.x_interp_coordinates,
         interpolator.y_interp_coordinates,
