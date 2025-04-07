@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
+from scipy.spatial import cKDTree
 
 class trilinear_interpolator():
     """
@@ -108,7 +109,7 @@ class trilinear_interpolator():
                 data,
                 method='linear',
                 bounds_error=False,
-                fill_value=None
+                fill_value=np.nan
             )
 
             # Now do chunked interpolation to show progress
@@ -120,6 +121,18 @@ class trilinear_interpolator():
                 percent = (end / n_total) * 100
                 print(f"  Param {param_idx}/{len(model_param_list)}: "
                       f"Interpolated {end}/{n_total} points ({percent:.1f}%)")
+
+            if np.any(np.isnan(vals)):
+                print(f"  Param {param_idx}/{len(model_param_list)}: "
+                      f"Found NaN values in interpolation results.")
+                # Fill NaNs using nearest neighbor interpolation
+                coord_grid_flat = np.column_stack((
+                    self.X_grid.flatten(order='F'),
+                    self.Y_grid.flatten(order='F'),
+                    self.Z_grid.flatten(order='F'),
+                ))
+
+                vals = fill_nan_from_nearest_interpolated(coord_grid_flat, vals)
 
             interpolated_params.append(vals)
 
@@ -134,3 +147,25 @@ class trilinear_interpolator():
             final_tomo_xyz = np.column_stack((final_tomo_xyz, arr))
 
         return final_tomo_xyz
+
+
+def fill_nan_from_nearest_interpolated(grid_flat, values_flat):
+    """
+    grid_flat: (N, 3) array of X, Y, Z coordinates
+    values_flat: (N,) array of interpolated values, some of which are NaN
+    """
+    nan_mask = np.isnan(values_flat)
+    not_nan_mask = ~nan_mask
+
+    if not np.any(nan_mask):
+        return values_flat  # nothing to fill
+
+    # Build KD-tree on valid points
+    tree = cKDTree(grid_flat[not_nan_mask])
+    
+    # Query nearest neighbor for NaN points
+    _, idx = tree.query(grid_flat[nan_mask], k=1)
+    
+    # Replace NaNs with the value from the nearest valid neighbor
+    values_flat[nan_mask] = values_flat[not_nan_mask][idx]
+    return values_flat
