@@ -94,7 +94,10 @@ def write_anisotropic_tomo_file(tomo, interpolator, path):
         interpolator.y_interp_coordinates,
         interpolator.z_interp_coordinates,
     )
+    
+    # Convert GPa to Pa for all Cij values before saving
+    tomo[:, 3:-1] *= 1e9
 
     MODEL_BODY = pd.DataFrame(tomo)
     TOMO_XYZ_DF = pd.concat([HEADER, MODEL_BODY], ignore_index=True)
-    TOMO_XYZ_DF.to_csv(path + 'tomography_model.xyz', index=False, header=False, sep=" ", float_format="%.1f")
+    TOMO_XYZ_DF.to_csv(path + 'tomography_model.xyz', index=False, header=False, sep=" ", float_format="%.8f")
