@@ -78,14 +78,17 @@ def write_anisotropic_tomo_file(tomo, interpolator, path):
     Format: x y z c11 c12 c13 c14 c15 c16 c22 ... c66 rho
 
     The 4th line of the header is somehow ad-hoc and might need to be revised in the future.
+
+    This assume that the Cij values in tomo are in GPa and rho in kg/m^3.
+    The output file is in the format required by SPECFEM3D as per https://github.com/SPECFEM/specfem3d/pull/1435
     """
     if not path.endswith('/'):
         path += '/'
 
     HEADER = _write_header(
         tomo[:, 0], tomo[:, 1], tomo[:, 2],
-        tomo[:, 3],  # c11 
-        tomo[:, 18],  # c44
+        np.sqrt(tomo[:, 3]/tomo[:,-1]*1e-3)*1e3,  # np.sqrt(c11/rho)
+        np.sqrt(tomo[:, 18]/tomo[:,-1]*1e-3)*1e3,  # np.sqrt(c44/rho)
         tomo[:, -1],  # rho
         interpolator.x_interp_coordinates,
         interpolator.y_interp_coordinates,
