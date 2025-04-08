@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-def write_tomo_file(tomo, interpolator, path):
+def write_tomo_file(tomo, interpolator, path, float_format="%.1f"):
     """ Write the tomo file at path+tomography_file.xyz
     Runs through two independant functions for 1) the header and 2) the body.
 
@@ -23,7 +23,7 @@ def write_tomo_file(tomo, interpolator, path):
     # Append the two text files
     TOMO_XYZ_DF = pd.concat([HEADER, MODEL_BODY], ignore_index=True)
     # Write file
-    TOMO_XYZ_DF.to_csv(path+'tomography_model.xyz', index=False, header=False, sep=" ", float_format="%.1f")
+    TOMO_XYZ_DF.to_csv(path+'tomography_model.xyz', index=False, header=False, sep=" ", float_format=float_format)
 
 
 def _write_header(interp_X,interp_Y,interp_Z,interp_vp,interp_vs, interp_rho, x_interp_coordinates, y_interp_coordinates, z_interp_coordinates):
@@ -73,7 +73,7 @@ def _create_tomo_df(interp_X,interp_Y,interp_Z,vp_values, vs_values, rho_values)
     return(pd.DataFrame(data=TOMO_DF))
 
 
-def write_anisotropic_tomo_file(tomo, interpolator, path):
+def write_anisotropic_tomo_file(tomo, interpolator, path, float_format="%.1f"):
     """ Write a tomography file with full anisotropic stiffness tensor (cij) + density (rho).
     Format: x y z c11 c12 c13 c14 c15 c16 c22 ... c66 rho
 
@@ -100,4 +100,4 @@ def write_anisotropic_tomo_file(tomo, interpolator, path):
 
     MODEL_BODY = pd.DataFrame(tomo)
     TOMO_XYZ_DF = pd.concat([HEADER, MODEL_BODY], ignore_index=True)
-    TOMO_XYZ_DF.to_csv(path + 'tomography_model.xyz', index=False, header=False, sep=" ", float_format="%.8f")
+    TOMO_XYZ_DF.to_csv(path + 'tomography_model.xyz', index=False, header=False, sep=" ", float_format=float_format)
