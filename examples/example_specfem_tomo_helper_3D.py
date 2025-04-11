@@ -48,12 +48,15 @@ tomo = np.hstack((coordinates, param))
 write_tomo_file(tomo, interpolator, './')
 
 processor = TopographyProcessor(interpolator, gui_parameters.projection, save_dir="./topography_analysis")
+# In case you are using doubling layers, this supports writing out the interfaces file.
+# The doubling layers are defined in the form (depth, ratio): depth is in meters, and 
+# the ratio is between 0 and 1 (in proportion of the topo layer)
 doubling_layers = [
-    (-8000, 0.33),  # Layer 1
-    (-4000, 0.66),   # Layer 2
-    (-20000, 0.0),   # Layer 3
+    (-4000, 0.66),  # Layer 1 - first interface - 4km average depth + 0.66 of the topo layer values
+    (-8000, 0.33),   # Layer 2 - second interface - 8km average depth + 0.33 of the topo layer values
+    (-20000, 0.0),   # Layer 3 - third interface - 20km average depth (taper out to 0)
 ]
-processor.save_results(slope_thresholds=[20], doubling_layers=doubling_layers)
+processor.save_results(doubling_layers=doubling_layers)
 
 
 # Display the interpolated model.
