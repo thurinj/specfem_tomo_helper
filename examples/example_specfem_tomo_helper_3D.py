@@ -56,7 +56,7 @@ doubling_layers = [
     (-8000, 0.33),   # Layer 2 - second interface - 8km average depth + 0.33 of the topo layer values
     (-20000, 0.0),   # Layer 3 - third interface - 20km average depth (taper out to 0)
 ]
-processor.save_results(doubling_layers=doubling_layers)
+processor.save_results(doubling_layers=doubling_layers, slope_thresholds=[5,15,20])
 
 
 # Optimize filtering of the outer shell of the tomo model for better performance
