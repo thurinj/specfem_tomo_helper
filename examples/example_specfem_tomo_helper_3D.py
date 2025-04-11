@@ -59,8 +59,18 @@ doubling_layers = [
 processor.save_results(doubling_layers=doubling_layers)
 
 
-# Display the interpolated model.
+# Optimize filtering of the outer shell of the tomo model for better performance
+x_bounds = {np.min(tomo[:, 0]), np.max(tomo[:, 0])}
+y_bounds = {np.min(tomo[:, 1]), np.max(tomo[:, 1])}
+z_bounds = {np.min(tomo[:, 2]), np.max(tomo[:, 2])}
+
+# Use set-based membership testing for faster filtering
+outer_shell = tomo[np.isin(tomo[:, 0], list(x_bounds)) |
+                   np.isin(tomo[:, 1], list(y_bounds)) |
+                   np.isin(tomo[:, 2], list(z_bounds))]
+
+# Display the filtered model
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter(tomo[:, 0], tomo[:, 1], tomo[:, 2], c=tomo[:, 3])
+ax.scatter(outer_shell[:, 0], outer_shell[:, 1], outer_shell[:, 2], c=outer_shell[:, 3])
 plt.show()
