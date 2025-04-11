@@ -103,7 +103,7 @@ class TopographyProcessor:
         Fgrad = np.sqrt(dFdx**2 + dFdy**2)
         return np.arctan(Fgrad) * 180 / np.pi
 
-    def save_results(self, slope_thresholds=[20], doubling_layers=None):
+    def save_results(self, slope_thresholds=[10,15,20], doubling_layers=None):
         """
         Saves all results: topography, slopes, histogram, and doubling layers.
         """
