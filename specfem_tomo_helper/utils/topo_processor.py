@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize
+from matplotlib.colors import Normalize, TwoSlopeNorm
 from matplotlib import cm
 import matplotlib.colors as colors 
 from scipy.ndimage import gaussian_filter
@@ -123,6 +123,13 @@ class TopographyProcessor:
         else:
             divnorm = colors.TwoSlopeNorm(vmin=np.min(Zi), vcenter=np.mean(Zi), vmax=np.max(Zi))
 
+        # Ensure terrain_map is always defined
+        terrain_map = colors.LinearSegmentedColormap.from_list('terrain_map', all_colors)
+
+        # Adjust the colormap dynamically if all topography is positive
+        if np.min(Zi) >= 0:
+            colors_land_only = plt.cm.terrain(np.linspace(0.25, 1, 256))
+            terrain_map = colors.LinearSegmentedColormap.from_list('terrain_map', colors_land_only)
 
         plt.pcolor(Xi, Yi, Zi, shading="auto", cmap=terrain_map, norm=divnorm)
         plt.colorbar(label="Elevation (m)")
@@ -143,14 +150,24 @@ class TopographyProcessor:
         plt.pcolor(Xi, Yi, Yslope, shading="auto", cmap="viridis", norm=norm)
         plt.colorbar(label="Slope (degrees)")
         plt.title("Slope")
-        plt.scatter(
-            Xi[Yslope > max(slope_thresholds)],
-            Yi[Yslope > max(slope_thresholds)],
-            color="red",
-            s=5,
-            label="High Slope Points",
-        )
-        plt.legend()
+
+        # Generate colors dynamically based on the number of thresholds
+        cmap = plt.cm.get_cmap("autumn", len(slope_thresholds))
+        threshold_colors = [cmap(i) for i in range(len(slope_thresholds))]
+
+        # Plot points with dynamically generated colors for each threshold
+        for i, threshold in enumerate(slope_thresholds):
+            mask = (Yslope > threshold) & (Yslope <= (slope_thresholds[i + 1] if i + 1 < len(slope_thresholds) else np.max(Yslope)))
+            if np.any(mask):  # Only add to legend if there are points in this range
+                plt.scatter(
+                    Xi[mask],
+                    Yi[mask],
+                    color=threshold_colors[i],
+                    s=5,
+                    label=f"Slope > {threshold} degrees"
+                )
+
+        plt.legend(loc="upper right")
         plt.savefig(os.path.join(self.save_dir, "slope_visualization.png"))
 
         results = {}
