@@ -2,7 +2,7 @@
 
 from specfem_tomo_helper.projection import vp2rho, vp2vs, vs2vp, define_utm_projection
 from specfem_tomo_helper.fileimport import Nc_model
-from specfem_tomo_helper.utils import maptool, trilinear_interpolator, write_tomo_file
+from specfem_tomo_helper.utils import maptool, trilinear_interpolator, write_tomo_file, TopographyProcessor
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -46,6 +46,15 @@ param = np.vstack((vp, vsv, rho)).T  # Stack the three params
 tomo = np.hstack((coordinates, param))
 # Write the tomography_file.xyz in "./" directory. It uses the tomography array and the interpolator parameters to produce the HEADER.
 write_tomo_file(tomo, interpolator, './')
+
+processor = TopographyProcessor(interpolator, gui_parameters.projection, save_dir="./topography_analysis")
+doubling_layers = [
+    (-8000, 0.33),  # Layer 1
+    (-4000, 0.66),   # Layer 2
+    (-20000, 0.0),   # Layer 3
+]
+processor.save_results(slope_thresholds=[20], doubling_layers=doubling_layers)
+
 
 # Display the interpolated model.
 fig = plt.figure()
