@@ -1,0 +1,14 @@
+name: specfem_tomo_helper
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.8
+  - pip
+  - numpy
+  - scipy
+  - pyproj
+  - pandas
+  - cartopy
+  - netCDF4
+  - pip:
+    - -e .
