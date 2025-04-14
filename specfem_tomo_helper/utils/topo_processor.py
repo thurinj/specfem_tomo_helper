@@ -117,20 +117,24 @@ class TopographyProcessor:
 
         print('vmin', np.min(Zi))
         print('vmax', np.max(Zi))
-        print('vcenter', 0)
-        if np.min(Zi) < 0:
-            divnorm = colors.TwoSlopeNorm(vmin=np.min(Zi), vcenter=0, vmax=np.max(Zi))
-        else:
+        if np.min(Zi) < 0 and np.max(Zi) < 0:  # Fully underwater case
             divnorm = colors.TwoSlopeNorm(vmin=np.min(Zi), vcenter=np.mean(Zi), vmax=np.max(Zi))
-
-        # Ensure terrain_map is always defined
-        terrain_map = colors.LinearSegmentedColormap.from_list('terrain_map', all_colors)
-
-        # Adjust the colormap dynamically if all topography is positive
-        if np.min(Zi) >= 0:
-            colors_land_only = plt.cm.terrain(np.linspace(0.25, 1, 256))
+            colors_water_only = plt.cm.terrain(np.linspace(0, 0.17, 256))  # Use only water part of the colormap
+            terrain_map = colors.LinearSegmentedColormap.from_list('terrain_map', colors_water_only)
+            print('vcenter', np.mean(Zi))
+        elif np.min(Zi) < 0 and np.max(Zi) > 0 :  # Mixed case
+            divnorm = colors.TwoSlopeNorm(vmin=np.min(Zi), vcenter=0, vmax=np.max(Zi))
+            # Combine water and land parts, excluding the turquoise region
+            colors_combined = np.vstack((plt.cm.terrain(np.linspace(0, 0.17, 128)), plt.cm.terrain(np.linspace(0.25, 1, 128))))
+            terrain_map = colors.LinearSegmentedColormap.from_list('terrain_map', colors_combined)
+            print('vcenter', 0)
+        else:  # Fully above water
+            divnorm = colors.TwoSlopeNorm(vmin=np.min(Zi), vcenter=np.mean(Zi), vmax=np.max(Zi))
+            colors_land_only = plt.cm.terrain(np.linspace(0.25, 1, 256))  # Use only land part of the colormap
             terrain_map = colors.LinearSegmentedColormap.from_list('terrain_map', colors_land_only)
+            print('vcenter', np.mean(Zi))
 
+        # Plot topography
         plt.pcolor(Xi, Yi, Zi, shading="auto", cmap=terrain_map, norm=divnorm)
         plt.colorbar(label="Elevation (m)")
         plt.title("Topography")
