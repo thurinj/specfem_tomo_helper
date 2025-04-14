@@ -6,46 +6,38 @@ The Area of Interest (AoI) of these tomographic files can be selected by direct 
 >***:warning: This package is work in progress and NOT YET READY FOR PRODUCTIVE USE.***
 
 ## Installation
-### Installing Python and Dependencies
 
-If you are well versed in Python, then the installation should not prove an issue; otherwise, please follow the advice here and download the [Anaconda Python distribution](https://www.anaconda.com/products/individual) for your system. The code is working with the current version of Python (3.9 at the moment) but should be working with most of the older 3.x versions.
+### Using Conda/Mamba (Recommended)
 
-After downloading and installing Anaconda, update it with
+To set up the environment and install the package using Conda or Mamba, follow these steps:
 
-```
-$ conda update conda
-```
-Then create a new environment. You don’t have to, but using a new environment grants a clean separation between Python installations.
+1. Ensure you have Conda or Mamba installed. If not, download and install [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install) or [Mamba](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html).
 
-```
- $ conda create --name sth
- ```
+2. Create the environment and install the package using the `environment.yml` file:
 
- This will create a new conda environment based on the latest Python released (3.9) named `sth`. Activate it with
+   ```bash
+   conda env create -f environment.yml
+   ```
 
- ```
- $ conda activate sth
- ```
+3. Activate the environment:
 
-Remember to activate it every time you want to use `specfem_tomo_helper`. You can quit the `sth` environment with `conda deactivate`.
+   ```bash
+   conda activate specfem_tomo_helper
+   ```
 
- Now install pip and cartopy with
- ```
- $ conda install pip cartopy pyproj
- ```
+This will set up the environment and install all dependencies, including the `specfem_tomo_helper` package.
 
- ### Installing specfem_tomo_helper
+### Using pip
 
- Now that the environment has been set up, you can download and install `specfem_tomo_helper` with
+If you prefer to use pip, follow these steps:
 
- ```
- $ git clone https://github.com/thurinj/specfem_tomo_helper.git
- $ cd specfem_tomo_helper/
- $ pip install -e .
- ```
+1. Ensure you have Python 3.8 or later installed.
 
-Pip should install a few more dependencies while installing `specfem_tomo_helper` (namely `numpy`, `scipy`, `pyproj`, `pandas` ,and `netCDF4`).
+2. Install the required dependencies and the package:
 
+   ```bash
+   pip install -e .
+   ```
 
 ### Running specfem_tomo_helper
 From here, you can move to the examples folder, where you can try 2 examples for 2D and 3D interpolation.
