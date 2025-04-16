@@ -34,15 +34,21 @@ class TopographyProcessor:
         self.filename = None
 
     def download_etopo_netcdf(self):
-        """Downloads the ETOPO1 NetCDF file if not already present."""
+        """Downloads the ETOPO1 NetCDF file if not already present in the package's download directory."""
+        import importlib.resources
+
         url = "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO1/data/bedrock/grid_registered/netcdf/ETOPO1_Bed_g_gmt4.grd.gz"
-        self.filename = "ETOPO1_Ice_c_gmt4.grd"
+        # Locate the data directory within the installed package
+        data_dir = os.path.join(os.path.dirname(__file__), '../download')
+        os.makedirs(data_dir, exist_ok=True)
+        self.filename = os.path.join(data_dir, "ETOPO1_Ice_c_gmt4.grd")
 
         if not os.path.isfile(self.filename):
             print("Downloading ETOPO1 NetCDF data...")
-            urllib.request.urlretrieve(url, self.filename + ".gz", self._show_progress)
+            gz_filename = self.filename + ".gz"
+            urllib.request.urlretrieve(url, gz_filename, self._show_progress)
             print("\nDownload complete.")
-            os.system(f"gunzip {self.filename}.gz")
+            os.system(f"gunzip {gz_filename}")
             print("Unzip complete.")
         else:
             print("ETOPO1 NetCDF data already downloaded.")
