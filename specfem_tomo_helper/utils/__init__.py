@@ -6,3 +6,4 @@ from specfem_tomo_helper.utils.interpolator3d import trilinear_interpolator
 from specfem_tomo_helper.utils.interpolator2p5d import linear_interpolator1d2d
 from specfem_tomo_helper.utils.io import write_tomo_file, write_anisotropic_tomo_file
 from specfem_tomo_helper.utils.topo_processor import TopographyProcessor
+from specfem_tomo_helper.utils.mesh_processor import MeshProcessor
