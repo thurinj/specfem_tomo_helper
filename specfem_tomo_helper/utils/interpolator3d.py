@@ -124,7 +124,7 @@ class trilinear_interpolator():
 
             if np.any(np.isnan(vals)):
                 print(f"  Param {param_idx}/{len(model_param_list)}: "
-                      f"Found NaN values in interpolation results -- please check the bounds of your model.")
+                      f"Found NaN values in interpolation results: \n  Please make sure you are happy with the chosen bounds (we're extrapolating what's missing).")
                 # Fill NaNs using nearest neighbor interpolation
                 coord_grid_flat = np.column_stack((
                     self.X_grid.flatten(order='F'),
