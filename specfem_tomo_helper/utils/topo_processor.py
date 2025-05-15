@@ -109,7 +109,7 @@ class TopographyProcessor:
         Fgrad = np.sqrt(dFdx**2 + dFdy**2)
         return np.arctan(Fgrad) * 180 / np.pi
 
-    def save_results(self, slope_thresholds=[10,15,20], doubling_layers=None):
+    def save_results(self, slope_thresholds=[10, 15, 20], doubling_layers=None):
         """
         Saves all results: topography, slopes, histogram, and doubling layers.
         """
@@ -208,6 +208,95 @@ class TopographyProcessor:
 
         print("All results saved successfully!")
 
+    def generate_interface_file(self, interface_file_path, vertical_elements):
+        """
+        Generates an interface file for the mesh processor.
+
+        Parameters:
+        - interface_file_path: Path to save the interface file.
+        - vertical_elements: List of integers specifying the number of vertical elements per layer.
+        """
+        Xi, Yi, Zi = self.interpolate_topography()
+        dx, dy = Xi[0, 1] - Xi[0, 0], Yi[1, 0] - Yi[0, 0]
+
+        # Save topography layers as text files
+        layer_files = []
+        for i, layer in enumerate(vertical_elements, start=1):
+            layer_file = os.path.join(self.save_dir, f"layer_{i}.txt")
+            np.savetxt(layer_file, Zi.flatten(), fmt="%.1f")
+            layer_files.append(layer_file)
+
+        # Write the interface file
+        with open(interface_file_path, "w") as f:
+            f.write(f"# number of interfaces\n {len(vertical_elements)}\n")
+            f.write("#\n")
+            f.write("# We describe each interface below, structured as a 2D-grid, with several parameters :\n")
+            f.write("# number of points along XI and ETA, minimal XI ETA coordinates\n")
+            f.write("# and spacing between points which must be constant.\n")
+            f.write("# Then the records contain the Z coordinates of the NXI x NETA points.\n")
+            f.write("#\n")
+
+            for i, layer_file in enumerate(layer_files, start=1):
+                f.write(f"# interface number {i}\n")
+                f.write(f" .true. {Xi.shape[1]} {Yi.shape[0]} {Xi[0, 0]:.1f} {Yi[0, 0]:.1f} {dx:.1f} {dy:.1f}\n")
+                f.write(f" {layer_file}\n")
+
+            f.write("#\n")
+            f.write("# for each layer, we give the number of spectral elements in the vertical direction\n")
+            f.write("#\n")
+
+            for i, elements in enumerate(vertical_elements, start=1):
+                f.write(f"# layer number {i}\n {elements}\n")
+
+        print(f"Interface file generated at {interface_file_path}")
+
+    def generate_interface_file_with_doubling(self, interface_file_path, depth, doubling_layers):
+        """
+        Generates an interface file for the mesh processor, considering doubling layers.
+
+        Parameters:
+        - interface_file_path: Path to save the interface file.
+        - depth: Total depth of the model in meters.
+        - doubling_layers: List of depths (in meters) where doubling occurs.
+        """
+        from .mesh_processor import calculate_adjusted_vertical_elements
+
+        Xi, Yi, Zi = self.interpolate_topography()
+        dx, dy = Xi[0, 1] - Xi[0, 0], Yi[1, 0] - Yi[0, 0]
+
+        # Calculate adjusted vertical elements
+        vertical_elements = calculate_adjusted_vertical_elements(depth, doubling_layers)
+
+        # Save topography layers as text files
+        layer_files = []
+        for i, layer in enumerate(vertical_elements, start=1):
+            layer_file = os.path.join(self.save_dir, f"layer_{i}.txt")
+            np.savetxt(layer_file, Zi.flatten(), fmt="%.1f")
+            layer_files.append(layer_file)
+
+        # Write the interface file
+        with open(interface_file_path, "w") as f:
+            f.write(f"# number of interfaces\n {len(vertical_elements)}\n")
+            f.write("#\n")
+            f.write("# We describe each interface below, structured as a 2D-grid, with several parameters :\n")
+            f.write("# number of points along XI and ETA, minimal XI ETA coordinates\n")
+            f.write("# and spacing between points which must be constant.\n")
+            f.write("# Then the records contain the Z coordinates of the NXI x NETA points.\n")
+            f.write("#\n")
+
+            for i, layer_file in enumerate(layer_files, start=1):
+                f.write(f"# interface number {i}\n")
+                f.write(f" .true. {Xi.shape[1]} {Yi.shape[0]} {Xi[0, 0]:.1f} {Yi[0, 0]:.1f} {dx:.1f} {dy:.1f}\n")
+                f.write(f" {layer_file}\n")
+
+            f.write("#\n")
+            f.write("# for each layer, we give the number of spectral elements in the vertical direction\n")
+            f.write("#\n")
+
+            for i, elements in enumerate(vertical_elements, start=1):
+                f.write(f"# layer number {i}\n {elements}\n")
+
+        print(f"Interface file with doubling layers generated at {interface_file_path}")
 
 
 # Example Usage
@@ -215,9 +304,9 @@ if __name__ == "__main__":
     # Assuming interpolator is already defined and initialized
     processor = TopographyProcessor(interpolator, myProj, save_dir="./topography_analysis")
     doubling_layers = [
-        (-16000, 0.33),  # Layer 1
-        (-4000, 0.66),   # Layer 2
-        (-50000, 0.0),   # Layer 3
+        16.0,  # Layer 1 in km
+        4.0,   # Layer 2 in km
+        50.0,  # Layer 3 in km
     ]
     processor.save_results(slope_thresholds=[20], doubling_layers=doubling_layers)
 
