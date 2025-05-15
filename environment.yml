@@ -10,5 +10,6 @@ dependencies:
   - pandas
   - cartopy
   - netCDF4
+  - jinja2
   - pip:
     - -e .

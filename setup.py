@@ -28,6 +28,6 @@ setuptools.setup(
     python_requires='~=3.6',
     install_requires=[
         "numpy", "scipy", "pyproj",
-        "pandas", "cartopy", "netCDF4"
+        "pandas", "cartopy", "netCDF4", "jinja2"
     ],
 )
