@@ -1,0 +1,63 @@
+#-----------------------------------------------------------
+# Meshing input parameters
+#-----------------------------------------------------------
+
+LATITUDE_MIN                    = {{ LATITUDE_MIN }}
+LATITUDE_MAX                    = {{ LATITUDE_MAX }}
+LONGITUDE_MIN                   = {{ LONGITUDE_MIN }}
+LONGITUDE_MAX                   = {{ LONGITUDE_MAX }}
+DEPTH_BLOCK_KM                  = {{ DEPTH_BLOCK_KM }}
+UTM_PROJECTION_ZONE             = {{ UTM_PROJECTION_ZONE }}
+SUPPRESS_UTM_PROJECTION         = {{ SUPPRESS_UTM_PROJECTION }}
+
+INTERFACES_FILE                 = {{ INTERFACES_FILE }}
+CAVITY_FILE                     = no_cavity.dat
+
+NEX_XI                          = {{ NEX_XI }}
+NEX_ETA                         = {{ NEX_ETA }}
+
+NPROC_XI                        = {{ NPROC_XI }}
+NPROC_ETA                       = {{ NPROC_ETA }}
+
+#-----------------------------------------------------------
+# Doubling layers
+#-----------------------------------------------------------
+
+USE_REGULAR_MESH                = .false.
+NDOUBLINGS                      = {{ nz_doublings|length }}
+{% for nz in nz_doublings -%}
+NZ_DOUBLING_{{ loop.index }}                   = {{ nz }}
+{% endfor %}
+
+#-----------------------------------------------------------
+# Visualization
+#-----------------------------------------------------------
+CREATE_ABAQUS_FILES             = .false.
+CREATE_DX_FILES                 = .false.
+CREATE_VTK_FILES                = .true.
+SAVE_MESH_AS_CUBIT              = .false.
+LOCAL_PATH                      = ./OUTPUT_FILES/DATABASES_MPI
+
+#-----------------------------------------------------------
+# CPML
+#-----------------------------------------------------------
+THICKNESS_OF_X_PML              = 12.3d0
+THICKNESS_OF_Y_PML              = 12.3d0
+THICKNESS_OF_Z_PML              = 12.3d0
+
+#-----------------------------------------------------------
+# Domain materials
+#-----------------------------------------------------------
+NMATERIALS                      = 1
+-1 tomography elastic {{ TOMO_FILENAME }} 0 2
+
+#-----------------------------------------------------------
+# Domain regions
+#-----------------------------------------------------------
+NREGIONS                        = {{ regions|length }}
+#NEX_XI_BEGIN  NEX_XI_END  NEX_ETA_BEGIN  NEX_ETA_END  NZ_BEGIN  NZ_END  material_id
+{% for r in regions -%}
+{{ "%-14d %-13d %-15d %-13d %-9d %-8d %-5d"|
+   format(r.xi0, r.xi1, r.eta0, r.eta1, r.z0, r.z1, r.mat) }}
+{% endfor %}
+
