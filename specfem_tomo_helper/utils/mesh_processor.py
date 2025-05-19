@@ -106,14 +106,14 @@ class MeshProcessor:
         for nproc_xi in range(1, max_cpu + 1):
             for nproc_eta in range(1, max_cpu // nproc_xi + 1):
                 tot = nproc_xi * nproc_eta
-                for kx in range(1, 100):
+                for kx in range(1, 1000):
                     nex_xi = 8 * nproc_xi * kx
                     dx = Lx / nex_xi
                     if not 0.5 * dx_target <= dx <= 2.0 * dx_target:
                         if dx < 0.5 * dx_target:
                             break
                         continue
-                    for ky in range(1, 100):
+                    for ky in range(1, 1000):
                         nex_eta = 8 * nproc_eta * ky
                         dy = Ly / nex_eta
                         if not 0.5 * dx_target <= dy <= 2.0 * dx_target:
@@ -126,9 +126,12 @@ class MeshProcessor:
                                       min(domain_ratio, proc_ratio)
                         delta = 0.5 * (abs(dx - dx_target) + abs(dy - dx_target)) / dx_target
                         nex_per_proc_xi = nex_xi // nproc_xi
+                        nex_per_proc_eta = nex_eta // nproc_eta
                         required_multiple = 2 * 2 ** n_doublings
                         if nex_per_proc_xi % required_multiple != 0:
-                            continue  # Enforce mesh compatibility constraint
+                            continue  # Enforce mesh compatibility constraint (xi)
+                        if nex_per_proc_eta % required_multiple != 0:
+                            continue  # Enforce mesh compatibility constraint (eta)
                         candidates.append((tot, nproc_xi, nproc_eta, nex_xi, nex_eta,
                                            dx, dy, res_ratio, shape_ratio, delta))
 
