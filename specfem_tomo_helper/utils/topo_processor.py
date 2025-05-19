@@ -499,8 +499,6 @@ class TopographyProcessor:
 
         # Build interface_grid_info and filenames in sorted order
         interface_grid_info = [x[2] for x in interface_depths]
-        # Do NOT reverse vertical_counts; use as is for bottom-to-top order
-        # vertical_counts = list(reversed(vertical_counts)) if len(vertical_counts) == len(interface_grid_info) else vertical_counts
 
         self.write_interfaces_jinja(
             os.path.join(self.save_dir, "interfaces.txt"),
