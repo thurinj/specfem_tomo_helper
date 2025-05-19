@@ -46,6 +46,8 @@ class MeshProcessor:
         self.min_vs = self.model[:, 4].min()
         self.src_half_duration = src_half_duration
         self.desired_dx, msg = self.estimate_element_size()
+        self.max_depth = None
+        self.doubling_layers = None
         print(msg)
 
         self.selected_config: dict | None = None      # from suggest_horizontal_configs
@@ -196,11 +198,15 @@ class MeshProcessor:
                                      doubling_layers=None):
         doubling_layers = doubling_layers or []
         
+        self.doubling_layers = doubling_layers
+
         if doubling_layers:
             doubling_layers = sorted([abs(x) / 1000 for x in doubling_layers])
 
         nz_tot, elem_dist = self._suggest_vertical_resolution_with_doubling(
             dz_target_km, max_depth, doubling_layers)
+
+        self.max_depth = max_depth
 
         ndoublings = len(doubling_layers)
         nz_doublings = np.cumsum(elem_dist[:-1]).tolist()

@@ -209,6 +209,14 @@ class TopographyProcessor:
                 np.savetxt(os.path.join(self.save_dir, f"layer_{i}.txt"), layer.flatten(), fmt="%.1f")
                 print(f"Saved doubling layer {i}")
             n_layers = len(doubling_layers)
+        elif self.mesh_processor.doubling_layers:
+            doubling_layers = self.mesh_processor.doubling_layers
+            # compute factor for each layer based on the doubling layers and depth
+            for doubling_layer in doubling_layers:
+                factor = -1/self.mesh_processor.max_depth + 1
+                layer = doubling_layer + (Zi - mean_topo) * factor
+                np.savetxt(os.path.join(self.save_dir, f"layer_{i}.txt"), layer.flatten(), fmt="%.1f")
+                print(f"Saved doubling layer {i}")
         else:
             # If not using doubling, just save one layer
             np.savetxt(os.path.join(self.save_dir, "layer_1.txt"), Zi.flatten(), fmt="%.1f")
@@ -357,6 +365,19 @@ class TopographyProcessor:
             - (base, factor) tuples for doubling layers
             - custom arrays (future extension)
         """
+
+        doubling_depths = self.mesh_processor.doubling_layers if self.mesh_processor else None
+        for i, doubling_depth in enumerate(doubling_depths, 1):
+            # compute factor for each layer based on the doubling layers and depth
+            factor = -1/self.mesh_processor.max_depth + 1
+            layer = doubling_depth + (self.tomo - np.mean(self.tomo)) * factor
+        
+        # Put the interfaces as a list of tuples, followed by 'topography'
+        if interfaces is None:
+            interfaces = ['topography']
+            for _i, depth in enumerate(doubling_depths, 1):
+                interfaces.append((depth, factor))
+
         Xi, Yi, Zi = self.interpolate_topography()
         dx, dy = Xi[0, 1] - Xi[0, 0], Yi[1, 0] - Yi[0, 0]
         x0, y0 = Xi[0, 0], Yi[0, 0]
@@ -436,8 +457,6 @@ class TopographyProcessor:
         layer_files = []
         region_names = []
         n_layers = 0
-        if interfaces is None:
-            interfaces = ['topography']
         for i, iface in enumerate(interfaces, 1):
             if iface == 'topography':
                 fname = f"topography.txt"
