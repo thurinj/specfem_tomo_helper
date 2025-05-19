@@ -28,7 +28,20 @@ class param_container:
 
 def maptool(model, myProj, param = None):
     """
+    A graphical tool for to select the modeling domain within the input model.
 
+    This function provides an interactive GUI for users to define the bounds of their simulation area.
+
+    Parameters:
+    - model: The input Nc_model() model object.
+    - myProj: The projection object used for coordinate transformations.
+    - param (optional): 
+
+    Returns:
+    - holder: An instance of `param_container` containing the selected area and projection details.
+
+    Notes:
+    - The matplotlib window might get unresponsive while the interpolation is being calculated.
     """
 
     holder = param_container(model, myProj)
