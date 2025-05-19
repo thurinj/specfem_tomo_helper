@@ -75,9 +75,22 @@ class MeshProcessor:
     #  Horizontal search                                                 #
     # ------------------------------------------------------------------ #
     def suggest_horizontal_configs(self, dx_target_km=None, max_cpu=64,
-                                   alpha=1.0, beta=1.0, mode="best"):
+                                   alpha=1.0, beta=1.0, mode="best", n_doublings: int = 0):
         """
         Populates self.selected_config and returns it.
+
+        Parameters
+        ----------
+        dx_target_km : float or None
+            Target horizontal element size in km. If None, uses estimated dx.
+        max_cpu : int
+            Maximum number of CPUs to consider.
+        alpha, beta : float
+            Weights for cost function.
+        mode : str
+            'best' (auto) or 'choice' (manual selection).
+        n_doublings : int
+            Number of vertical doublings (for mesh compatibility). Ensures NEX_PER_PROC_XI is a multiple of 2 * 2**NDOUBLINGS.
         """
         # ---- *unchanged enumerator* ----------------------------------- #
         if dx_target_km is None:
@@ -112,25 +125,37 @@ class MeshProcessor:
                         shape_ratio = max(domain_ratio, proc_ratio) / \
                                       min(domain_ratio, proc_ratio)
                         delta = 0.5 * (abs(dx - dx_target) + abs(dy - dx_target)) / dx_target
+                        nex_per_proc_xi = nex_xi // nproc_xi
+                        required_multiple = 2 * 2 ** n_doublings
+                        if nex_per_proc_xi % required_multiple != 0:
+                            continue  # Enforce mesh compatibility constraint
                         candidates.append((tot, nproc_xi, nproc_eta, nex_xi, nex_eta,
                                            dx, dy, res_ratio, shape_ratio, delta))
+
+        if not candidates:
+            raise MeshConfigError(f"No valid mesh configuration found for n_doublings={n_doublings}. Try adjusting dx_target_km or max_cpu.")
 
         df = pd.DataFrame(candidates, columns=[
             "total_cpu", "nproc_xi", "nproc_eta", "nex_xi", "nex_eta",
             "dx", "dy", "res_ratio", "load_ratio", "delta"
         ])
-        df = df[df["total_cpu"] >= 0.9 * df["total_cpu"].max()]
+        # df = df[df["total_cpu"] >= 0.9 * df["total_cpu"].max()]
 
         # cost
         scale = {
             "delta": np.percentile(df["delta"], 90),
             "square": np.percentile(df["res_ratio"] - 1, 90),
-            "shape": np.percentile(df["load_ratio"] - 1, 90)
+            "shape": np.percentile(df["load_ratio"] - 1, 90),
+            "cpu": df["total_cpu"].max() or 1  # use max for normalization, avoid div by zero
         }
-        df["cost"] = (beta * (df["delta"] / scale["delta"])
-                      + (df["res_ratio"] - 1) / scale["square"]
-                      + alpha * (df["load_ratio"] - 1) / scale["shape"])
-        df = df.sort_values("cost").reset_index(drop=True)
+        # Add a negative term for total_cpu so that higher CPU count is favored (lower cost)
+        df["cost"] = (
+            beta * (df["delta"] / scale["delta"])
+            + (df["res_ratio"] - 1) / scale["square"]
+            + alpha * (df["load_ratio"] - 1) / scale["shape"]
+            - (df["total_cpu"] / scale["cpu"])  # negative: more CPU = lower cost
+        )
+        df = df.sort_values(["cost"], ascending=[True]).reset_index(drop=True)
 
         if mode == "best":
             self.selected_config = df.iloc[0].to_dict()
