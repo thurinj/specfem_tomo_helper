@@ -1,0 +1,19 @@
+# number of interfaces
+ {{ n_layers }}
+#
+# We describe each interface below, structured as a 2D-grid, with several parameters :
+# number of points along XI and ETA, minimal XI ETA coordinates
+# and spacing between points which must be constant.
+# Then the records contain the Z coordinates of the NXI x NETA points.
+#
+{% for iface in interfaces %}
+# interface number {{ loop.index }}
+ .true. {{ iface.nxi }} {{ iface.neta }} {{ '%.1f'|format(iface.x0) }} {{ '%.1f'|format(iface.y0) }} {{ '%.1f'|format(iface.dx) }} {{ '%.1f'|format(iface.dy) }}
+ {{ iface.filename }}
+{% endfor %}
+
+# for each layer, we give the number of spectral elements in the vertical direction
+#
+{% for i in range(n_layers) %}
+# layer number {{ i+1 }}
+ {{ vertical_counts[i] }}{% endfor %}
