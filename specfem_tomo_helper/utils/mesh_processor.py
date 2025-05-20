@@ -51,7 +51,7 @@ class MeshProcessor:
         self.desired_dx, msg = self.estimate_element_size()
         self.max_depth = None
         self.doubling_layers = None
-        print(msg)
+        # print(msg)
 
         self.selected_config: dict | None = None      # from suggest_horizontal_configs
         self._vertical_cache: dict | None = None      # from generate_dynamic_mesh_config
