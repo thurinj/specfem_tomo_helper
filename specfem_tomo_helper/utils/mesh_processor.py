@@ -28,7 +28,7 @@ class MeshProcessor:
     #  Constructor & basic utilities                                        #
     # --------------------------------------------------------------------- #
     def __init__(self, interpolated_tomography, src_half_duration=0.5,
-                 save_dir="./mesh_output"):
+                 save_dir="./mesh_output", projection=None):
         """
         Parameters
         ----------
@@ -38,10 +38,13 @@ class MeshProcessor:
             Half-duration (s) of the source used to size the mesh.
         save_dir : str
             Directory for interface txt files and other artefacts.
+        projection : pyproj.Proj instance
+            UTM projection object. If provided, used to determine UTM zone.
         """
         self.model = np.asarray(interpolated_tomography)
         self.save_dir = Path(save_dir)
         self.save_dir.mkdir(parents=True, exist_ok=True)
+        self.projection = projection
 
         self.min_vs = self.model[:, 4].min()
         self.src_half_duration = src_half_duration
@@ -345,3 +348,43 @@ class MeshProcessor:
 
         transitions = z_vals[1:][labels[1:] != labels[:-1]]
         return transitions.tolist()
+
+    # ------------------------------------------------------------------ #
+    #  Simplified Par_file writing                                       #
+    # ------------------------------------------------------------------ #
+    def write_parfile_easy(self, output_dir="./", filename="Mesh_Par_file"):
+        """
+        Simplified method to write the Par_file with minimal user input.
+
+        Parameters
+        ----------
+        output_dir : str
+            Directory where the Par_file will be saved.
+        filename : str
+            Name of the Par_file to be written.
+        """
+        output_path = Path(output_dir) / filename
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Extract UTM zone from projection object if available
+        utm_zone = "32"  # Default UTM zone if projection is not available
+        if self.projection is not None and hasattr(self.projection, 'crs') and hasattr(self.projection.crs, 'utm_zone'):
+            # Extract only the digits from the UTM zone (e.g., '33' from '33N')
+            utm_zone = ''.join(filter(str.isdigit, self.projection.crs.utm_zone))
+        
+        latlon_params = {
+            "LATITUDE_MIN": self.model[:, 1].min(),
+            "LATITUDE_MAX": self.model[:, 1].max(),
+            "LONGITUDE_MIN": self.model[:, 0].min(),
+            "LONGITUDE_MAX": self.model[:, 0].max(),
+            "DEPTH_BLOCK_KM": self.max_depth if self.max_depth else 250.0,  # Default depth
+            "UTM_PROJECTION_ZONE": utm_zone,  # Dynamically extracted UTM zone
+            "SUPPRESS_UTM_PROJECTION": ".true.",
+            "INTERFACES_FILE": "interfaces.txt",
+            "TOMO_FILENAME": "tomography_model.xyz",
+        }
+
+        # Call the existing to_parfile method
+        self.to_parfile(output_path=output_path, **latlon_params)
+
+        print(f"Par_file written to {output_path}")
