@@ -321,16 +321,13 @@ class TopographyProcessor:
         slope_thresholds : list of float, optional
             Slope thresholds for visualization.
         """
-        doubling_depths = self.mesh_processor.doubling_layers if self.mesh_processor else None
-        for i, doubling_depth in enumerate(doubling_depths, 1):
-            # compute factor for each layer based on the doubling layers and depth
-            factor = -1/self.mesh_processor.max_depth + 1
-            layer = doubling_depth + (self.tomo - np.mean(self.tomo)) * factor
         
         # Put the interfaces as a list of tuples, followed by 'topography'
+        doubling_depths = self.mesh_processor.doubling_layers if self.mesh_processor else None
         if interfaces is None:
             interfaces = ['topography']
             for _i, depth in enumerate(doubling_depths, 1):
+                factor = -1 * depth/1e3 * (-1/self.mesh_processor.max_depth) + 1
                 interfaces.append((depth, factor))
 
         Xi, Yi, Zi = self.interpolate_topography()
@@ -433,7 +430,6 @@ class TopographyProcessor:
                 np.savetxt(os.path.join(self.save_dir, fname), layer.flatten(), fmt="%.1f")
                 layer_files.append(fname)
                 region_names.append(fname)
-            # ...future: handle custom arrays...
         n_layers = len(layer_files)
 
         # Build a list of (depth, filename, grid_info) for sorting
