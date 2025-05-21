@@ -60,7 +60,7 @@ write_tomo_file(tomo, interpolator, './')
 max_depth = 250.0  # in km (total mesh depth)
 
 # Set up the mesh processor and suggest horizontal mesh configs
-mesh = MeshProcessor(tomo, src_half_duration=1, projection=gui_parameters.projection)
+mesh = MeshProcessor(interpolated_tomography=tomo, projection=gui_parameters.projection)
 mesh.suggest_horizontal_configs(dx_target_km=5.0, max_cpu=64, mode='choice', n_doublings=2)  # mesh element size target (in km)
 
 # Generate the mesh config, including vertical doubling layers (depths in meters, negative down)
