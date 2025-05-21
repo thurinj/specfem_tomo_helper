@@ -1,13 +1,13 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import pyproj
 from matplotlib.colors import Normalize, TwoSlopeNorm
 from matplotlib import colors
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import LinearNDInterpolator
 from netCDF4 import Dataset
-from typing import Optional, List, Tuple, Any
+from typing import Optional, List, Tuple, Any, Dict
+import pyproj
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -16,7 +16,15 @@ class TopographyProcessor:
     """
     Processes and interpolates topography data, generates slope maps, and writes interface files for SPECFEM3D.
     """
-    def __init__(self, interpolator: Any, myProj: Any, save_dir: str = "./topography_analysis", smoothing_sigma: float = 1, tomo: Optional[np.ndarray] = None, mesh_processor: Optional[Any] = None):
+    def __init__(
+        self,
+        interpolator: Any,
+        myProj: pyproj.Proj,
+        save_dir: str = "./topography_analysis",
+        smoothing_sigma: float = 1,
+        tomo: Optional[np.ndarray] = None,
+        mesh_processor: Optional[Any] = None
+    ) -> None:
         """
         Initialize the TopographyProcessor.
 
@@ -25,7 +33,7 @@ class TopographyProcessor:
         interpolator : Any
             Interpolator object with x_interp_coordinates and y_interp_coordinates attributes.
         myProj : pyproj.Proj
-            UTM projection object.
+            UTM projection object (from pyproj).
         save_dir : str, optional
             Directory to save outputs. Default is './topography_analysis'.
         smoothing_sigma : float, optional
@@ -71,7 +79,13 @@ class TopographyProcessor:
         """
         pass
 
-    def get_etopo_data_netcdf(self, lon_min: float, lon_max: float, lat_min: float, lat_max: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_etopo_data_netcdf(
+        self,
+        lon_min: float,
+        lon_max: float,
+        lat_min: float,
+        lat_max: float
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Reads and crops the ETOPO1 data.
 
@@ -150,7 +164,11 @@ class TopographyProcessor:
         Fgrad = np.sqrt(dFdx**2 + dFdy**2)
         return np.arctan(Fgrad) * 180 / np.pi
 
-    def generate_interface_file(self, interface_file_path: str, vertical_elements: List[int]) -> None:
+    def generate_interface_file(
+        self,
+        interface_file_path: str,
+        vertical_elements: List[int]
+    ) -> None:
         """
         Generates an interface file for the mesh processor.
 
@@ -195,7 +213,12 @@ class TopographyProcessor:
 
         logging.info(f"Interface file generated at {interface_file_path}")
 
-    def generate_interface_file_with_doubling(self, interface_file_path: str, depth: float, doubling_layers: List[float]) -> None:
+    def generate_interface_file_with_doubling(
+        self,
+        interface_file_path: str,
+        depth: float,
+        doubling_layers: List[float]
+    ) -> None:
         """
         Generates an interface file for the mesh processor, considering doubling layers.
 
@@ -247,7 +270,13 @@ class TopographyProcessor:
 
         logging.info(f"Interface file with doubling layers generated at {interface_file_path}")
 
-    def write_interfaces_jinja(self, output_path: str, interface_grid_info: List[dict], n_layers: int, vertical_counts: Optional[List[int]] = None) -> None:
+    def write_interfaces_jinja(
+        self,
+        output_path: str,
+        interface_grid_info: List[Dict[str, Any]],
+        n_layers: int,
+        vertical_counts: Optional[List[int]] = None
+    ) -> None:
         """
         Write interfaces.txt using the Jinja2 template and the current mesh configuration.
 
@@ -277,7 +306,11 @@ class TopographyProcessor:
             f.write(rendered)
         logging.info(f"interfaces.txt written using Jinja2 template at {output_path}")
 
-    def write_all_outputs(self, interfaces: Optional[List[Any]] = None, slope_thresholds: Optional[List[float]] = None) -> None:
+    def write_all_outputs(
+        self,
+        interfaces: Optional[List[Any]] = None,
+        slope_thresholds: Optional[List[float]] = None
+    ) -> None:
         """
         Flexible, user-friendly entry point to write topography, layers, and interfaces.txt.
 
