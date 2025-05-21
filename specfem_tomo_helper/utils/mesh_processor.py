@@ -24,34 +24,32 @@ class MeshProcessor:
     Build and validate SPECFEM3D mesh parameters, then write a Par_file.
     """
 
-    # --------------------------------------------------------------------- #
-    #  Constructor & basic utilities                                        #
-    # --------------------------------------------------------------------- #
-    def __init__(self, interpolated_tomography, src_half_duration=0.5,
-                 save_dir="./mesh_output", projection=None):
+    def __init__(self, interpolated_tomography: np.ndarray, projection, src_half_duration: float = 0.5,
+                 save_dir: str = "./mesh_output"):
         """
         Parameters
         ----------
-        interpolated_tomography : ndarray (N, ≥5)
-            Columns : x, y, z[km], Vp, Vs, ...
-        src_half_duration : float
-            Half-duration (s) of the source used to size the mesh.
-        save_dir : str
-            Directory for interface txt files and other artefacts.
-        projection : pyproj.Proj instance
-            UTM projection object. If provided, used to determine UTM zone.
+        interpolated_tomography : np.ndarray
+            Array of shape (N, 6). Columns: x, y, z[m], Vp, Vs, Density.
+        projection : pyproj.Proj
+            UTM projection object. Required.
+        src_half_duration : float, optional
+            Half-duration (s) of the source used to size the mesh. Default is 0.5.
+            Suggest a mesh element size of 5 points per wavelength (this part is not
+            feature complete yet).
+        save_dir : str, optional
+            Directory for interface txt files and other artefacts. Default is './mesh_output'.
         """
         self.model = np.asarray(interpolated_tomography)
         self.save_dir = Path(save_dir)
         self.save_dir.mkdir(parents=True, exist_ok=True)
         self.projection = projection
 
-        self.min_vs = self.model[:, 4].min()
-        self.src_half_duration = src_half_duration
-        self.desired_dx, msg = self.estimate_element_size()
-        self.max_depth = None
-        self.doubling_layers = None
-        # print(msg)
+        self.min_vs: float = self.model[:, 4].min()
+        self.src_half_duration: float = src_half_duration
+        self.desired_dx, _ = self.estimate_element_size()
+        self.max_depth: float | None = None
+        self.doubling_layers: list | None = None
 
         self.selected_config: dict | None = None      # from suggest_horizontal_configs
         self._vertical_cache: dict | None = None      # from generate_dynamic_mesh_config
@@ -59,12 +57,25 @@ class MeshProcessor:
     # ------------------------------------------------------------------ #
     #  Mesh-sizing helpers                                               #
     # ------------------------------------------------------------------ #
-    def estimate_element_size(self, points_per_wavelength=5, gll_order=5):
+    def estimate_element_size(self, points_per_wavelength: int = 5, gll_order: int = 5) -> tuple[float, str]:
         """
+        Estimate the maximum element size for the mesh based on minimum Vs and source duration.
+        This is a helper function that I want to use in the future, but it is not
+        fully implemented yet. It is not really used in the current code.
+
+        Parameters
+        ----------
+        points_per_wavelength : int, optional
+            Number of points per minimum wavelength. Default is 5.
+        gll_order : int, optional
+            GLL order. Default is 5.
+
         Returns
         -------
-        h_max : float   (metres)
-        msg   : str     pretty message
+        h_max : float
+            Target element size (metres).
+        msg : str
+            Pretty message describing the target dx.
         """
         f_max = 1.0 / (2.0 * self.src_half_duration)
         lambda_min = (self.min_vs * 1_000.0) / f_max
@@ -91,9 +102,10 @@ class MeshProcessor:
         alpha, beta : float
             Weights for cost function.
         mode : str
-            'best' (auto) or 'choice' (manual selection).
+            'best' (auto) or 'choice' (manual selection among 10 proposal config).
         n_doublings : int
             Number of vertical doublings (for mesh compatibility). Ensures NEX_PER_PROC_XI is a multiple of 2 * 2**NDOUBLINGS.
+            This should be consistent with the number of doubling layers requested in generate_dynamic_mesh_config().
         """
         # ---- *unchanged enumerator* ----------------------------------- #
         if dx_target_km is None:
@@ -179,7 +191,20 @@ class MeshProcessor:
             raise ValueError("mode must be 'best' or 'choice'")
         return self.selected_config
 
-    def horizontal_dict(self):
+    def horizontal_dict(self) -> dict:
+        """
+        Return the selected horizontal mesh configuration as a dictionary.
+
+        Returns
+        -------
+        dict
+            Dictionary with keys 'NPROC_XI', 'NPROC_ETA', 'NEX_XI', 'NEX_ETA'.
+
+        Raises
+        ------
+        MeshConfigError
+            If suggest_horizontal_configs() has not been run yet.
+        """
         if self.selected_config is None:
             raise MeshConfigError("Run suggest_horizontal_configs() first")
         c = self.selected_config
@@ -189,18 +214,25 @@ class MeshProcessor:
     # ------------------------------------------------------------------ #
     #  Vertical doubling + regions                                       #
     # ------------------------------------------------------------------ #
-    def _suggest_vertical_resolution_with_doubling(self, dz_target_km=1.0, total_depth_km=10.0, doubling_layers=None):
+    def _suggest_vertical_resolution_with_doubling(self, dz_target_km: float = 1.0, total_depth_km: float = 10.0, doubling_layers: list = None) -> tuple[int, list]:
         """
-        Suggests the optimal number of vertical elements considering multiple doubling layers.
+        Suggest the optimal number of vertical elements considering multiple doubling layers.
 
-        Parameters:
-        - dz_target_km: Target element size in the vertical direction (in km).
-        - total_depth_km: Total depth of the model (in km).
-        - doubling_layers: List of depths (in km) where doubling occurs, sorted from shallowest to deepest.
+        Parameters
+        ----------
+        dz_target_km : float, optional
+            Target element size in the vertical direction (in km). Default is 1.0.
+        total_depth_km : float, optional
+            Total depth of the model (in km). Default is 10.0.
+        doubling_layers : list, optional
+            List of depths (in km) where doubling occurs, sorted from shallowest to deepest.
 
-        Returns:
-        - total_elements: Total number of vertical elements.
-        - element_distribution: List of element counts for each layer.
+        Returns
+        -------
+        total_elements : int
+            Total number of vertical elements.
+        element_distribution : list of int
+            List of element counts for each layer (from deepest to shallowest).
         """
         if not doubling_layers:
             # No doubling, calculate elements normally
@@ -224,11 +256,27 @@ class MeshProcessor:
         total_elements = sum(element_distribution)
         return total_elements, element_distribution[::-1]
 
-    def generate_dynamic_mesh_config(self, dz_target_km=1.0,
-                                     max_depth=10.0,
-                                     doubling_layers=None):
+    def generate_dynamic_mesh_config(self, dz_target_km: float = 1.0,
+                                     max_depth: float = 10.0,
+                                     doubling_layers: list = None) -> dict:
+        """
+        Generate the dynamic mesh configuration for the vertical direction, including doubling layers.
+
+        Parameters
+        ----------
+        dz_target_km : float, optional
+            Target element size in the vertical direction (in km). Default is 1.0.
+        max_depth : float, optional
+            Maximum depth of the model (in km). Default is 10.0.
+        doubling_layers : list, optional
+            List of depths (in meters) where doubling occurs. Default is None.
+
+        Returns
+        -------
+        dict
+            Dictionary containing mesh configuration for the vertical direction.
+        """
         doubling_layers = doubling_layers or []
-        
         self.doubling_layers = doubling_layers
 
         if doubling_layers:
@@ -265,7 +313,15 @@ class MeshProcessor:
     # ------------------------------------------------------------------ #
     #  Validation                                                        #
     # ------------------------------------------------------------------ #
-    def _validate(self):
+    def _validate(self) -> None:
+        """
+        Validate the current mesh configuration for consistency.
+
+        Raises
+        ------
+        MeshConfigError
+            If the mesh configuration is inconsistent or incomplete.
+        """
         if self._vertical_cache is None or self.selected_config is None:
             raise MeshConfigError("Run horizontal and vertical generators first")
 
@@ -282,14 +338,22 @@ class MeshProcessor:
     # ------------------------------------------------------------------ #
     #  Flatten for template                                              #
     # ------------------------------------------------------------------ #
-    def parfile_dict(self, **latlon_kwargs):
+    def parfile_dict(self, **latlon_kwargs) -> dict:
         """
+        Flatten the mesh configuration and extra parameters for template rendering.
+
         Parameters
         ----------
-        latlon_kwargs : keys that the caller must provide
+        **latlon_kwargs : dict
+            Additional keyword arguments required by the template, such as:
             LATITUDE_MIN, LATITUDE_MAX, LONGITUDE_MIN, LONGITUDE_MAX,
             DEPTH_BLOCK_KM, UTM_PROJECTION_ZONE, SUPPRESS_UTM_PROJECTION,
             INTERFACES_FILE, TOMO_FILENAME
+
+        Returns
+        -------
+        dict
+            Dictionary containing all mesh and template parameters.
         """
         self._validate()
         out = {}
@@ -310,17 +374,23 @@ class MeshProcessor:
     #  Render Par_file                                                   #
     # ------------------------------------------------------------------ #
     def to_parfile(self, template_path: str | Path | None = None,
-                   output_path="Par_file", **latlon):
+                   output_path: str = "Par_file", **latlon) -> str:
         """
-        Render the Par_file.
+        Render and write the Par_file using the mesh configuration and template.
 
         Parameters
         ----------
-        template_path : str or Path or None
-            • None  → use the package’s default template  
-            • str/Path → path to a custom Jinja2 template
-        output_path  : where to write the Par_file
-        **latlon     : the extra keyword args required by the template
+        template_path : str or Path or None, optional
+            Path to a custom Jinja2 template, or None to use the package’s default template.
+        output_path : str, optional
+            Path where the Par_file will be written. Default is 'Par_file'.
+        **latlon : dict
+            Extra keyword arguments required by the template.
+
+        Returns
+        -------
+        str
+            Path to the written Par_file.
         """
         if template_path is None:
             template_path = _pkg_template_path()    # ← automatic default
@@ -331,13 +401,26 @@ class MeshProcessor:
         tmpl = env.get_template(Path(template_path).name)
         txt = tmpl.render(**self.parfile_dict(**latlon))
         Path(output_path).write_text(txt)
-        print(f"✅  {output_path} written")
+        print(f"{output_path} written")
         return output_path
 
     # ------------------------------------------------------------------ #
     #  Vs/Vp-based automatic layer break                                 #
     # ------------------------------------------------------------------ #
-    def detect_doubling(self, n_clusters=3):
+    def detect_doubling(self, n_clusters: int = 3) -> list:
+        """
+        Detect optimal vertical layer boundaries using KMeans clustering on Vp and Vs profiles.
+
+        Parameters
+        ----------
+        n_clusters : int, optional
+            Number of clusters to use for KMeans. Default is 3.
+
+        Returns
+        -------
+        list
+            List of depths (in km) where layer transitions are detected.
+        """
         z_vals = np.unique(self.model[:, 2])        # depth km, shallow→deep
         vp_vs = np.column_stack([
             [self.model[np.isclose(self.model[:, 2], z), 3].mean() for z in z_vals],
@@ -352,16 +435,16 @@ class MeshProcessor:
     # ------------------------------------------------------------------ #
     #  Simplified Par_file writing                                       #
     # ------------------------------------------------------------------ #
-    def write_parfile_easy(self, output_dir="./", filename="Mesh_Par_file"):
+    def write_parfile_easy(self, output_dir: str = "./", filename: str = "Mesh_Par_file") -> None:
         """
-        Simplified method to write the Par_file with minimal user input.
+        Write the Par_file with minimal user input, using default or inferred parameters.
 
         Parameters
         ----------
-        output_dir : str
-            Directory where the Par_file will be saved.
-        filename : str
-            Name of the Par_file to be written.
+        output_dir : str, optional
+            Directory where the Par_file will be saved. Default is './'.
+        filename : str, optional
+            Name of the Par_file to be written. Default is 'Mesh_Par_file'.
         """
         output_path = Path(output_dir) / filename
         output_path.parent.mkdir(parents=True, exist_ok=True)
