@@ -22,8 +22,8 @@ class TopographyProcessor:
         myProj: pyproj.Proj,
         save_dir: str = "./topography_analysis",
         smoothing_sigma: float = 1,
-        tomo: Optional[np.ndarray] = None,
-        mesh_processor: Optional[Any] = None
+        mesh_processor: Optional[Any] = None,
+        doubling_layers: Optional[list] = None
     ) -> None:
         """
         Initialize the TopographyProcessor.
@@ -38,10 +38,10 @@ class TopographyProcessor:
             Directory to save outputs. Default is './topography_analysis'.
         smoothing_sigma : float, optional
             Sigma for Gaussian smoothing of topography. Default is 1.
-        tomo : Optional[np.ndarray], optional
-            Tomography model array, if available.
         mesh_processor : Optional[Any], optional
             MeshProcessor instance, if available.
+        doubling_layers : Optional[list], optional
+            List of doubling layer depths (if not using mesh_processor).
         """
         self.interpolator = interpolator
         self.utm_zone = getattr(myProj.crs, 'utm_zone', None)
@@ -49,8 +49,8 @@ class TopographyProcessor:
         self.y_interp = interpolator.y_interp_coordinates
         self.save_dir = save_dir
         self.smoothing_sigma = smoothing_sigma
-        self.tomo = tomo
         self.mesh_processor = mesh_processor
+        self.doubling_layers = doubling_layers
         os.makedirs(self.save_dir, exist_ok=True)
         self.filename: Optional[str] = None
 
@@ -213,62 +213,6 @@ class TopographyProcessor:
 
         logging.info(f"Interface file generated at {interface_file_path}")
 
-    def generate_interface_file_with_doubling(
-        self,
-        interface_file_path: str,
-        depth: float,
-        doubling_layers: List[float]
-    ) -> None:
-        """
-        Generates an interface file for the mesh processor, considering doubling layers.
-
-        Parameters
-        ----------
-        interface_file_path : str
-            Path to save the interface file.
-        depth : float
-            Total depth of the model in meters.
-        doubling_layers : list of float
-            Depths (in meters) where doubling occurs.
-        """
-        from .mesh_processor import calculate_adjusted_vertical_elements
-
-        Xi, Yi, Zi = self.interpolate_topography()
-        dx, dy = Xi[0, 1] - Xi[0, 0], Yi[1, 0] - Yi[0, 0]
-
-        # Calculate adjusted vertical elements
-        vertical_elements = calculate_adjusted_vertical_elements(depth, doubling_layers)
-
-        # Save topography layers as text files
-        layer_files = []
-        for i, layer in enumerate(vertical_elements, start=1):
-            layer_file = os.path.join(self.save_dir, f"layer_{i}.txt")
-            np.savetxt(layer_file, Zi.flatten(), fmt="%.1f")
-            layer_files.append(layer_file)
-
-        # Write the interface file
-        with open(interface_file_path, "w") as f:
-            f.write(f"# number of interfaces\n {len(vertical_elements)}\n")
-            f.write("#\n")
-            f.write("# We describe each interface below, structured as a 2D-grid, with several parameters :\n")
-            f.write("# number of points along XI and ETA, minimal XI ETA coordinates\n")
-            f.write("# and spacing between points which must be constant.\n")
-            f.write("# Then the records contain the Z coordinates of the NXI x NETA points.\n")
-            f.write("#\n")
-
-            for i, layer_file in enumerate(layer_files, start=1):
-                f.write(f"# interface number {i}\n")
-                f.write(f" .true. {Xi.shape[1]} {Yi.shape[0]} {Xi[0, 0]:.1f} {Yi[0, 0]:.1f} {dx:.1f} {dy:.1f}\n")
-                f.write(f" {layer_file}\n")
-
-            f.write("#\n")
-            f.write("# for each layer, we give the number of spectral elements in the vertical direction\n")
-            f.write("#\n")
-
-            for i, elements in enumerate(vertical_elements, start=1):
-                f.write(f"# layer number {i}\n {elements}\n")
-
-        logging.info(f"Interface file with doubling layers generated at {interface_file_path}")
 
     def write_interfaces_jinja(
         self,
