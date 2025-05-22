@@ -68,8 +68,28 @@ class Nc_model:
             var_data = np.moveaxis(var_data, 0, -1)
             # Move depth axis to the last column.
         
-        if 'rho' in varname and np.nanmean(var_data[:,:,0])<50:
-            var_data=var_data*1000
+        # Replace missing values with np.nan if needed
+        var = self.dataset.variables[str(varname)]
+        missing_value = getattr(var, 'missing_value', None)
+        if missing_value is not None:
+            var_data = np.where(var_data == missing_value, np.nan, var_data)
+
+        # Robust density unit check and conversion
+        if 'rho' in varname:
+            units = getattr(var, 'units', '').lower()
+            # Convert if units are g/cm^3
+            if 'g/cm3' in units or 'g/cm^3' in units:
+                var_data = var_data * 1000
+            elif 'kg/m3' in units or 'kg/m^3' in units:
+                pass  # Already in SI
+            else:
+                # Fallback: check median of valid values
+                valid = var_data[np.isfinite(var_data)]
+                if valid.size > 0:
+                    median_val = np.median(valid)
+                    # If median is less than 50, likely g/cm^3
+                    if median_val < 50:
+                        var_data = var_data * 1000
             
         if fill_nan == 'vertical':
             for depth_id in len(self.depth)-2-np.arange(len(self.depth)-1):
