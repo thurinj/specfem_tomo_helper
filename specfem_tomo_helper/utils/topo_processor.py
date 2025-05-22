@@ -484,4 +484,25 @@ class TopographyProcessor:
             vertical_counts
         )
         logging.info("All outputs written (topography, layers, interfaces.txt)")
+    
+    def auto_smooth_topography(self, Zi, Xi, Yi, min_slope, max_iter=50, dt=0.2):
+        """
+        Iteratively apply explicit diffusion smoothing to Zi until all slopes are below min_slope.
+        Uses Neumann (zero-gradient) boundary conditions to avoid edge effects.
+        Returns the smoothed Zi.
+        """
+        Zi_smoothed = Zi.copy()
+        for _ in range(max_iter):
+            # Pad with edge values to enforce Neumann (zero-gradient) BCs
+            Zi_pad = np.pad(Zi_smoothed, 1, mode='edge')
+            laplacian = (
+                Zi_pad[2:, 1:-1] + Zi_pad[:-2, 1:-1] +
+                Zi_pad[1:-1, 2:] + Zi_pad[1:-1, :-2] -
+                4 * Zi_pad[1:-1, 1:-1]
+            )
+            Zi_smoothed += dt * laplacian
+            Yslope = self.calculate_slope(Zi_smoothed, Xi[0, 1] - Xi[0, 0], Yi[1, 0] - Yi[0, 0])
+            if np.all(Yslope <= min_slope):
+                break
+        return Zi_smoothed
 
