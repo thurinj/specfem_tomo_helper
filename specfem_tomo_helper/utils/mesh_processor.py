@@ -91,6 +91,7 @@ class MeshProcessor:
         n_doublings : int
             Number of vertical doublings (for mesh compatibility). Ensures NEX_PER_PROC_XI is a multiple of 2 * 2**NDOUBLINGS.
             This should be consistent with the number of doubling layers requested in generate_dynamic_mesh_config().
+            Note: doubling_layers are now expected in km (will be converted to meters internally).
         """
         # ---- *unchanged enumerator* ----------------------------------- #
         if dx_target_km is None:
@@ -259,7 +260,7 @@ class MeshProcessor:
         max_depth : float, optional
             Maximum depth of the model (in km). Default is 10.0.
         doubling_layers : list, optional
-            List of depths (in meters) where doubling occurs. Default is None.
+            List of depths (in km, negative down) where vertical mesh doubling occurs. Will be converted to meters internally.
 
         Returns
         -------
