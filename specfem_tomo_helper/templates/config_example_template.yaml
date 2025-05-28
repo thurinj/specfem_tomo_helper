@@ -31,7 +31,7 @@ max_depth: 250.0  # in km
 dx_target_km: 5.0
 dz_target_km: 5.0
 max_cpu: 64
-doubling_layers: [-31.0, -80.0]  # in km
+doubling_layers: [31.0, 80.0]  # in km
 
 # Topography generation options
 generate_topography: true
