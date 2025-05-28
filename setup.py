@@ -30,4 +30,9 @@ setuptools.setup(
         "numpy", "scipy", "pyproj",
         "pandas", "cartopy", "netCDF4", "jinja2"
     ],
+    entry_points={
+        'console_scripts': [
+            'tomo-helper=specfem_tomo_helper.cli:main',
+        ],
+    },
 )
