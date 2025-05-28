@@ -195,14 +195,13 @@ def validate_config(config):
                 raise ConfigValidationError(f"Missing mesh config option: {key}")
             if not isinstance(config[key], typ):
                 raise ConfigValidationError(f"Mesh config option '{key}' must be of type {typ}")
-        # doubling_layers now in km, check for reasonable values
+        # All mesh depths must be positive (positive-down convention)
         if config['max_depth'] <= 0 or config['dx_target_km'] <= 0 or config['dz_target_km'] <= 0 or config['max_cpu'] <= 0:
-            raise ConfigValidationError("Mesh numeric options must be > 0")
+            raise ConfigValidationError("Mesh numeric options must be > 0 (positive-down convention)")
         if not all(isinstance(x, (int, float)) for x in config['doubling_layers']):
             raise ConfigValidationError("All doubling_layers must be numbers (in km)")
-        # Check that doubling_layers are within depth range (in km)
-        if not all(config['z_min'] <= x <= config['z_max'] or config['z_max'] <= x <= config['z_min'] for x in config['doubling_layers']):
-            raise ConfigValidationError("All doubling_layers (in km) must be within the z_min/z_max range")
+        if not all(0 <= x <= config['max_depth'] for x in config['doubling_layers']):
+            raise ConfigValidationError("All doubling_layers (in km) must be within the max_depth range [0, max_depth] (in km) and positive (positive-down convention)")
     # Topography options
     if config.get('generate_topography', False):
         topo_required = [
