@@ -4,6 +4,30 @@ from pyproj import Proj
 import pyproj
 import pyproj.proj
 
+def auto_determine_utm_zone(longitude, latitude):
+    """
+    Automatically determine UTM zone and hemisphere from coordinates.
+    
+    Parameters
+    ----------
+    longitude : float
+        Longitude in decimal degrees
+    latitude : float  
+        Latitude in decimal degrees
+        
+    Returns
+    -------
+    tuple
+        (utm_zone, hemisphere) where utm_zone is int and hemisphere is 'N' or 'S'
+    """
+    # Calculate UTM zone from longitude
+    utm_zone = int((longitude + 180) / 6) + 1
+    
+    # Determine hemisphere from latitude
+    hemisphere = 'N' if latitude >= 0 else 'S'
+    
+    return utm_zone, hemisphere
+
 def define_utm_projection(utm_zone: int, hemisphere: str) -> pyproj.proj.Proj:
     """ Define lat-lon to utm projection based on pyproj. Meant to streamline
     the usage of pyproj.proj function by simplifying the inputs.
