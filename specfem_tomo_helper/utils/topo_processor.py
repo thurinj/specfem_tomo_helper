@@ -41,7 +41,7 @@ class TopographyProcessor:
         mesh_processor : Optional[Any], optional
             MeshProcessor instance, if available.
         doubling_depth : Optional[list], optional
-            List of doubling layer depths (if not using mesh_processor).
+            List of doubling layer depths (in km, negative down; will be converted to meters internally if used).
         """
         self.interpolator = interpolator
         self.utm_zone = getattr(myProj.crs, 'utm_zone', None)
@@ -50,7 +50,8 @@ class TopographyProcessor:
         self.save_dir = save_dir
         self.smoothing_sigma = smoothing_sigma
         self.mesh_processor = mesh_processor
-        self.doubling_layers = doubling_depth
+        # Convert doubling_layers from km to meters if provided
+        self.doubling_layers = [dl * 1000.0 for dl in doubling_depth] if doubling_depth is not None else None
         os.makedirs(self.save_dir, exist_ok=True)
         self.filename: Optional[str] = None
 
@@ -289,16 +290,29 @@ class TopographyProcessor:
         Yslope = self.calculate_slope(Zi, dx, dy)
 
         # Topography visualization (define divnorm here)
-        if np.min(Zi) < 0 and np.max(Zi) < 0:  # Fully underwater case
-            divnorm = colors.TwoSlopeNorm(vmin=np.min(Zi), vcenter=np.mean(Zi), vmax=np.max(Zi))
+        vmin = np.min(Zi)
+        vmax = np.max(Zi)
+        # Ensure vmin < vcenter < vmax for TwoSlopeNorm
+        if vmin < 0 and vmax < 0:  # Fully underwater case
+            vcenter = (vmin + vmax) / 2
+            if not (vmin < vcenter < vmax):
+                vcenter = vmin + (vmax - vmin) / 2  # fallback
+            divnorm = colors.TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
             colors_water_only = plt.cm.terrain(np.linspace(0, 0.17, 256))
             terrain_map = colors.LinearSegmentedColormap.from_list('terrain_map', colors_water_only)
-        elif np.min(Zi) < 0 and np.max(Zi) > 0 :  # Mixed case
-            divnorm = colors.TwoSlopeNorm(vmin=np.min(Zi), vcenter=0, vmax=np.max(Zi))
+        elif vmin < 0 and vmax > 0 :  # Mixed case
+            vcenter = 0
+            # Ensure vmin < vcenter < vmax
+            if not (vmin < vcenter < vmax):
+                vcenter = (vmin + vmax) / 2
+            divnorm = colors.TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
             colors_combined = np.vstack((plt.cm.terrain(np.linspace(0, 0.17, 128)), plt.cm.terrain(np.linspace(0.25, 1, 128))))
             terrain_map = colors.LinearSegmentedColormap.from_list('terrain_map', colors_combined)
         else:  # Fully above water
-            divnorm = colors.TwoSlopeNorm(vmin=np.min(Zi), vcenter=np.mean(Zi), vmax=np.max(Zi))
+            vcenter = (vmin + vmax) / 2
+            if not (vmin < vcenter < vmax):
+                vcenter = vmin + (vmax - vmin) / 2
+            divnorm = colors.TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
             colors_land_only = plt.cm.terrain(np.linspace(0.25, 1, 256))
             terrain_map = colors.LinearSegmentedColormap.from_list('terrain_map', colors_land_only)
 
