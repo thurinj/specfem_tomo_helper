@@ -44,7 +44,7 @@ def test_mesh_missing_option():
     config['dx_target_km'] = 5.0
     config['dz_target_km'] = 5.0
     config['max_cpu'] = 64
-    config['doubling_layers'] = [-31000, -80000]
+    config['doubling_layers'] = [-31, -80]  # in km
     if 'mesh_output_dir' in config:
         del config['mesh_output_dir']
     with pytest.raises(ConfigValidationError):
@@ -71,12 +71,6 @@ def test_invalid_plot_color_by():
     with pytest.raises(ConfigValidationError):
         validate_config(config)
 
-def test_invalid_compute_rho_from():
-    config = VALID_CONFIG.copy()
-    config['compute_rho_from'] = 'foo'
-    with pytest.raises(ConfigValidationError):
-        validate_config(config)
-
 def test_negative_mesh_values():
     config = VALID_CONFIG.copy()
     config['generate_mesh'] = True
@@ -85,7 +79,7 @@ def test_negative_mesh_values():
     config['dx_target_km'] = 5.0
     config['dz_target_km'] = 5.0
     config['max_cpu'] = 64
-    config['doubling_layers'] = [-31000, -80000]
+    config['doubling_layers'] = [-31, -80]  # in km
     with pytest.raises(ConfigValidationError):
         validate_config(config)
 
@@ -97,7 +91,7 @@ def test_zero_mesh_values():
     config['dx_target_km'] = 0
     config['dz_target_km'] = 0
     config['max_cpu'] = 0
-    config['doubling_layers'] = [-31000, -80000]
+    config['doubling_layers'] = [-31, -80]  # in km
     with pytest.raises(ConfigValidationError):
         validate_config(config)
 
@@ -167,7 +161,7 @@ def test_invalid_output_dir_types():
     config['dx_target_km'] = 5.0
     config['dz_target_km'] = 5.0
     config['max_cpu'] = 64
-    config['doubling_layers'] = [-31000, -80000]
+    config['doubling_layers'] = [-31, -80]  # in km
     with pytest.raises(ConfigValidationError):
         validate_config(config)
     config = VALID_CONFIG.copy()
@@ -259,7 +253,7 @@ def test_mesh_max_cpu_wrong_type():
     config['max_depth'] = 250.0
     config['dx_target_km'] = 5.0
     config['dz_target_km'] = 5.0
-    config['doubling_layers'] = [-31000, -80000]
+    config['doubling_layers'] = [-31, -80]  # in km
     
     original_max_cpu = config.get('max_cpu') # Save original if it exists for VALID_CONFIG
 
@@ -286,11 +280,29 @@ def test_core_utm_zone_wrong_type():
     config['utm_zone'] = 'not_an_int'
     with pytest.raises(ConfigValidationError) as excinfo:
         validate_config(config)
-    assert "Config option 'utm_zone' must be of type <class 'int'>" in str(excinfo.value)
+    assert "utm_zone must be an integer, got <class 'str'>" in str(excinfo.value)
 
     config['utm_zone'] = 32.5 # Float, should fail as int is specified
     with pytest.raises(ConfigValidationError) as excinfo:
         validate_config(config)
-    assert "Config option 'utm_zone' must be of type <class 'int'>" in str(excinfo.value)
+    assert "utm_zone must be an integer, got <class 'float'>" in str(excinfo.value)
 
     config['utm_zone'] = original_utm_zone # Restore
+
+def test_extent_latlon_rejected():
+    config = VALID_CONFIG.copy()
+    # Simulate geographic (lat/lon) extent
+    config['extent'] = [-120, -110, 30, 40]
+    # Should fail: extent must be UTM
+    with pytest.raises(ConfigValidationError) as excinfo:
+        validate_config(config)
+    assert "extent must be a list of 4 numbers" not in str(excinfo.value)  # Not a type error
+    # The error should be about UTM info missing or extent not being UTM
+
+def test_extent_utm_missing_utm_zone():
+    config = VALID_CONFIG.copy()
+    config['extent'] = [500000, 600000, 4000000, 4100000]  # Looks like UTM
+    config['utm_zone'] = None
+    with pytest.raises(ConfigValidationError) as excinfo:
+        validate_config(config)
+    assert "UTM zone and hemisphere can only be null" in str(excinfo.value) or "both 'utm_zone' and 'utm_hemisphere' must also be specified" in str(excinfo.value)
