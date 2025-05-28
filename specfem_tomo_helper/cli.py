@@ -8,13 +8,29 @@ from specfem_tomo_helper.projection import vp2rho, vp2vs, vs2vp, define_utm_proj
 from specfem_tomo_helper.fileimport import Nc_model
 from specfem_tomo_helper.utils import maptool, trilinear_interpolator, write_tomo_file, TopographyProcessor, MeshProcessor
 from specfem_tomo_helper.utils.config_utils import validate_config, ConfigValidationError, auto_detect_utm_from_extent, is_geographic_extent
+from specfem_tomo_helper import __version__
+
+# Global verbose flag
+VERBOSE = False
+
+def verbose_print(*args, **kwargs):
+    """Print only if verbose mode is enabled."""
+    if VERBOSE:
+        print(*args, **kwargs)
 
 def main():
+    global VERBOSE
+    
     parser = argparse.ArgumentParser(description='Run tomography workflow from config file or create a template config.')
     parser.add_argument('--config', '-c', type=str, help='Path to YAML config file')
     parser.add_argument('--create-config', action='store_true', help='Create a template config YAML file and exit')
     parser.add_argument('--output', '-o', type=str, default='config_example.yaml', help='Output path for the template config file (used with --create-config)')
+    parser.add_argument('--version', action='version', version=f'specfem-tomo-helper {__version__}')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output')
     args = parser.parse_args()
+    
+    # Set global verbose flag
+    VERBOSE = args.verbose
 
     if args.create_config:
         import shutil
@@ -48,9 +64,11 @@ def main():
     variable = config['variable']
 
     # Load the netCDF model and variables
+    verbose_print(f"Loading NetCDF model from: {path}")
     nc_model = Nc_model(path)
     lon, lat, depth = nc_model.load_coordinates()
     var = nc_model.load_variable(variable, fill_nan='vertical')
+    verbose_print(f"Loaded coordinates and variable '{variable}' from NetCDF model")
 
     # UTM projection setup and extent validation
     utm_zone = config.get('utm_zone')
@@ -66,12 +84,12 @@ def main():
             sys.exit(1)
     else:
         if utm_zone is None or utm_hemisphere is None:
-            print("No extent or UTM zone/hemisphere provided. Attempting to auto-detect from NetCDF model coordinates...")
+            verbose_print("No extent or UTM zone/hemisphere provided. Attempting to auto-detect from NetCDF model coordinates...")
             try:
                 min_lon, max_lon = float(np.nanmin(lon)), float(np.nanmax(lon))
                 min_lat, max_lat = float(np.nanmin(lat)), float(np.nanmax(lat))
                 data_extent = [min_lon, max_lon, min_lat, max_lat]
-                print(f"Auto-detecting UTM zone and hemisphere from model lon/lat extent: {data_extent}")
+                verbose_print(f"Auto-detecting UTM zone and hemisphere from model lon/lat extent: {data_extent}")
                 detected_zone, detected_hemisphere = auto_detect_utm_from_extent(data_extent)
                 utm_zone = detected_zone
                 utm_hemisphere = detected_hemisphere
@@ -103,7 +121,7 @@ def main():
         if myProj is None:
             if config.get('utm_zone') is None or config.get('utm_hemisphere') is None:
                 if is_geographic_extent(config['extent']):
-                    print("Auto-detecting UTM zone and hemisphere from GUI-selected extent...")
+                    verbose_print("Auto-detecting UTM zone and hemisphere from GUI-selected extent...")
                     detected_zone, detected_hemisphere = auto_detect_utm_from_extent(config['extent'])
                     config['utm_zone'] = detected_zone
                     config['utm_hemisphere'] = detected_hemisphere
@@ -171,10 +189,13 @@ def main():
 
     tomo_output_dir = config.get('tomo_output_dir', './')
     os.makedirs(tomo_output_dir, exist_ok=True)
+    verbose_print(f"Writing tomography files to: {tomo_output_dir}")
     write_tomo_file(tomo, interpolator, tomo_output_dir)
+    print(f"Tomography files written to: {tomo_output_dir}")
 
     mesh_output_dir = config.get('mesh_output_dir', './mesh_output')
     if config.get('generate_mesh', False):
+        verbose_print(f"Generating mesh files in: {mesh_output_dir}")
         mesh = MeshProcessor(
             interpolated_tomography=tomo,
             projection=gui_parameters.projection,
@@ -185,7 +206,9 @@ def main():
         neg_doubling_layers_km = [-dl for dl in config['doubling_layers']]
         doubling_layers_m = [dl * 1000.0 for dl in neg_doubling_layers_km]
         mesh.generate_dynamic_mesh_config(dz_target_km=config['dz_target_km'], max_depth=config['max_depth'], doubling_layers=doubling_layers_m)
+        print(f"Mesh configuration generated in: {mesh_output_dir}")
     if config.get('generate_topography', False):
+        verbose_print(f"Generating topography files in: {config['topography_output_dir']}")
         smoothing_sigma = config.get('smoothing_sigma', 0)
         mesh_arg = mesh if config.get('generate_mesh', False) else None
         # Convert doubling_layers from km (positive down) to negative for TopographyProcessor if mesh is not used
@@ -213,8 +236,10 @@ def main():
                 topo.write_all_outputs_no_filter()
             else:
                 topo.write_all_outputs(slope_thresholds=None)
+        print(f"Topography files generated in: {config['topography_output_dir']}")
     if config.get('generate_mesh', False):
         mesh.write_parfile_easy(output_dir=mesh_output_dir)
+        print(f"Mesh parameter file written to: {mesh_output_dir}")
 
     if config.get('plot_outer_shell', False):
         x_bounds = {np.min(tomo[:, 0]), np.max(tomo[:, 0])}
