@@ -1,0 +1,48 @@
+# This is a template config file for specfem_tomo_helper
+
+# Path to NetCDF model
+data_path: 'path/to/your/model.nc'  # Update with your actual model path
+
+# Grid spacing (meters)
+dx: 5000
+dy: 5000
+dz: 5000
+
+# Elevation range (km, negative down, positive values are above sea level, negative values are below)
+z_min: -40  # Adjust as needed
+z_max: 0  # Top of the model, typically sea level or max elevation in the model
+
+# Variable(s) to interpolate (allow a list or string)
+variable: 'vsv'  # or a list like ['vp', 'vs', 'rho']
+fill_nan: 'vertical'  # How to fill NaNs: 'vertical', 'horizontal', or null
+
+# UTM projection zone and hemisphere
+utm_zone: null  # Set to null to use GUI for zone selection
+utm_hemisphere: null  # Set to null to use GUI for hemisphere selection
+
+# Area of Interest (optional, set by GUI if not present)
+extent: null # [xmin, xmax, ymin, ymax] in projected coordinates
+use_gui: true # Force GUI even if extent is set
+
+# Mesh generation options
+generate_mesh: true
+mesh_output_dir: './meshfem3D_files'  # Directory for mesh files
+max_depth: 250.0  # in km
+dx_target_km: 5.0
+dz_target_km: 5.0
+max_cpu: 64
+doubling_layers: [-31.0, -80.0]  # in km
+
+# Topography generation options
+generate_topography: true
+topography_output_dir: './meshfem3D_files'
+slope_thresholds: [10, 15, 20] # Diagnostic thresholds for slope in degrees. Lower value is used for 'auto' smoothing.
+smoothing_sigma: 'auto'  # Sigma for Gaussian smoothing of topography (default: 1, or 'auto' for adaptive smoothing)
+
+# Tomography output options
+tomo_output_dir: './tomo_files'  # Directory for tomography_model.xyz
+
+# Plotting options
+plot_outer_shell: true
+plot_color_by: 'vp'  # or 'vs', 'rho'
+show_plot: true  # Show plot interactively
