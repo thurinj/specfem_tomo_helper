@@ -1,0 +1,3 @@
+#!/bin/sh
+# Thin wrapper for local development, so you can run ./tomo-helper ...
+python -m specfem_tomo_helper.cli "$@"
