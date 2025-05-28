@@ -23,7 +23,7 @@ class TopographyProcessor:
         save_dir: str = "./topography_analysis",
         smoothing_sigma: float = 1,
         mesh_processor: Optional[Any] = None,
-        doubling_layers: Optional[list] = None
+        doubling_depth: Optional[list] = None
     ) -> None:
         """
         Initialize the TopographyProcessor.
@@ -40,7 +40,7 @@ class TopographyProcessor:
             Sigma for Gaussian smoothing of topography. Default is 1.
         mesh_processor : Optional[Any], optional
             MeshProcessor instance, if available.
-        doubling_layers : Optional[list], optional
+        doubling_depth : Optional[list], optional
             List of doubling layer depths (if not using mesh_processor).
         """
         self.interpolator = interpolator
@@ -50,7 +50,7 @@ class TopographyProcessor:
         self.save_dir = save_dir
         self.smoothing_sigma = smoothing_sigma
         self.mesh_processor = mesh_processor
-        self.doubling_layers = doubling_layers
+        self.doubling_layers = doubling_depth
         os.makedirs(self.save_dir, exist_ok=True)
         self.filename: Optional[str] = None
 
@@ -267,12 +267,17 @@ class TopographyProcessor:
         """
         
         # Put the interfaces as a list of tuples, followed by 'topography'
-        doubling_depths = self.mesh_processor.doubling_layers if self.mesh_processor else None
+        doubling_depths = None
+        if self.mesh_processor and hasattr(self.mesh_processor, 'doubling_layers'):
+            doubling_depths = self.mesh_processor.doubling_layers
+        elif self.doubling_layers is not None:
+            doubling_depths = self.doubling_layers
         if interfaces is None:
             interfaces = ['topography']
-            for _i, depth in enumerate(doubling_depths, 1):
-                factor = -1 * depth/1e3 * (-1/self.mesh_processor.max_depth) + 1
-                interfaces.append((depth, factor))
+            if doubling_depths is not None:
+                for _i, depth in enumerate(doubling_depths, 1):
+                    factor = -1 * depth/1e3 * (-1/self.mesh_processor.max_depth) + 1 if self.mesh_processor and hasattr(self.mesh_processor, 'max_depth') else 1.0
+                    interfaces.append((depth, factor))
 
         Xi, Yi, Zi = self.interpolate_topography()
         dx, dy = Xi[0, 1] - Xi[0, 0], Yi[1, 0] - Yi[0, 0]
