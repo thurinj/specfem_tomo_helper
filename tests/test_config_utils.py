@@ -56,7 +56,7 @@ def test_mesh_options():
     config['dx_target_km'] = 5.0
     config['dz_target_km'] = 5.0
     config['max_cpu'] = 64
-    config['doubling_layers'] = [-31, -80]  # in km
+    config['doubling_layers'] = [31, 80]  # in km (positive-down convention)
     assert validate_config(config) is True
 
 def test_topography_options():
