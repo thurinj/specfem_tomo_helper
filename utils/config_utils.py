@@ -1,23 +1,79 @@
-# config_validator.py
+import os
 
 class ConfigValidationError(Exception):
     pass
 
+def auto_detect_utm_from_extent(extent):
+    """
+    Auto-detect UTM zone and hemisphere from geographic extent.
+    
+    Parameters
+    ----------
+    extent : list
+        [min_lon, max_lon, min_lat, max_lat] in decimal degrees
+        
+    Returns
+    -------
+    tuple
+        (utm_zone, hemisphere) where utm_zone is int and hemisphere is 'N' or 'S'
+        
+    Raises
+    ------
+    ConfigValidationError
+        If extent doesn't appear to be in geographic coordinates
+    """
+    if len(extent) != 4:
+        raise ConfigValidationError("extent must be a list of 4 numbers [min_lon, max_lon, min_lat, max_lat]")
+    
+    min_lon, max_lon, min_lat, max_lat = extent
+    
+    # Check if coordinates look like geographic coordinates (longitude/latitude)
+    if not (-180 <= min_lon <= 180 and -180 <= max_lon <= 180 and 
+            -90 <= min_lat <= 90 and -90 <= max_lat <= 90):
+        raise ConfigValidationError(
+            "Extent values don't appear to be in geographic coordinates (longitude/latitude). "
+            "Auto-detection only works with geographic coordinates. "
+            f"Got extent: {extent}"
+        )
+    
+    # Use center point to determine UTM zone
+    center_lon = (min_lon + max_lon) / 2
+    center_lat = (min_lat + max_lat) / 2
+    
+    # Calculate UTM zone from longitude
+    utm_zone = int((center_lon + 180) / 6) + 1
+    
+    # Determine hemisphere from latitude
+    hemisphere = 'N' if center_lat >= 0 else 'S'
+    
+    return utm_zone, hemisphere
+
 def is_geographic_extent(extent):
-    # Dummy implementation for the sake of example
-    # Replace with the actual logic to determine if the extent is in geographic coordinates
-    return False
+    """
+    Check if extent appears to be in geographic coordinates (longitude/latitude).
+    
+    Parameters
+    ----------
+    extent : list
+        [min_x, max_x, min_y, max_y] coordinates
+        
+    Returns
+    -------
+    bool
+        True if extent appears to be in geographic coordinates
+    """
+    if len(extent) != 4:
+        return False
+    
+    # First check if all values are numeric
+    if not all(isinstance(val, (int, float)) for val in extent):
+        return False
+    
+    min_x, max_x, min_y, max_y = extent
+    
+    # Geographic coordinates should be within valid longitude/latitude ranges
+    return (-180 <= min_x <= 180 and -180 <= max_x <= 180 and 
+            -90 <= min_y <= 90 and -90 <= max_y <= 90)
 
 def validate_config(config):
-    # Early validation of extent (before UTM logic that uses it)
-    if 'extent' in config and config['extent'] is not None:
-        if not (isinstance(config['extent'], list) and len(config['extent']) == 4):
-            raise ConfigValidationError("extent must be a list of 4 numbers")
-        for val in config['extent']:
-            if not isinstance(val, (int, float)):
-                raise ConfigValidationError("extent values must be numbers")
-        # New: extent must NOT be in geographic coordinates (lat/lon)
-        if is_geographic_extent(config['extent']):
-            raise ConfigValidationError("'extent' must be specified in UTM coordinates, not geographic (lat/lon). Please provide UTM coordinates and specify utm_zone and utm_hemisphere.")
-
-    # ... rest of the validation logic ...
+    # Rest of the validation logic will be added here

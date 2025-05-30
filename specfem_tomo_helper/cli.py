@@ -67,8 +67,7 @@ def main():
     verbose_print(f"Loading NetCDF model from: {path}")
     nc_model = Nc_model(path)
     lon, lat, depth = nc_model.load_coordinates()
-    var = nc_model.load_variable(variable, fill_nan='vertical')
-    verbose_print(f"Loaded coordinates and variable '{variable}' from NetCDF model")
+    verbose_print(f"Loaded coordinates from NetCDF model")
 
     # UTM projection setup and extent validation
     utm_zone = config.get('utm_zone')
