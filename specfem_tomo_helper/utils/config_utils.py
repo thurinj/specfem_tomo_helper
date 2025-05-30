@@ -96,14 +96,56 @@ def validate_config(config):
     # Early validation of extent (before UTM logic that uses it)
     if 'extent' in config and config['extent'] is not None:
         if not (isinstance(config['extent'], list) and len(config['extent']) == 4):
-            raise ConfigValidationError("extent must be a list of 4 numbers")
+            raise ConfigValidationError("extent must be a list of 4 numbers [min_x, max_x, min_y, max_y]")
         for val in config['extent']:
             if not isinstance(val, (int, float)):
                 raise ConfigValidationError("extent values must be numbers")
-        # New: extent must NOT be in geographic coordinates (lat/lon)
+        # Check for valid coordinate ranges
+        min_x, max_x, min_y, max_y = config['extent']
+        if min_x >= max_x:
+            raise ConfigValidationError("extent min_x must be less than max_x")
+        if min_y >= max_y:
+            raise ConfigValidationError("extent min_y must be less than max_y")
+        # We don't want extent to be in geographic coordinates (lat/lon)
         if is_geographic_extent(config['extent']):
             raise ConfigValidationError("'extent' must be specified in UTM coordinates, not geographic (lat/lon). Please provide UTM coordinates and specify utm_zone and utm_hemisphere.")
+
+    # Check if this is an anisotropic model
+    variables = config['variable']
+    if isinstance(variables, str):
+        variables = [variables]
     
+    # Define anisotropic tensor components
+    anisotropic_components = [
+        'c11', 'c12', 'c13', 'c14', 'c15', 'c16',
+        'c22', 'c23', 'c24', 'c25', 'c26',
+        'c33', 'c34', 'c35', 'c36',
+        'c44', 'c45', 'c46',
+        'c55', 'c56',
+        'c66'
+    ]
+    
+    # Only process string variables for anisotropic detection
+    var_lower = [v.lower() for v in variables if isinstance(v, str)]
+    is_anisotropic = any(comp in var_lower for comp in anisotropic_components)
+    
+    if is_anisotropic:
+        # For anisotropic models, validate that all required components are present
+        required_anisotropic = anisotropic_components + ['rho']
+        missing = [comp for comp in required_anisotropic if comp not in var_lower]
+        
+        if missing:
+            raise ConfigValidationError(
+                f"Anisotropic model detected but missing required components: {missing}. "
+                f"For anisotropic models, all 21 stiffness tensor components (c11-c66) plus density (rho) are required."
+            )
+
+    # Check for file existence
+    data_path = config.get('data_path')
+    if isinstance(data_path, str):
+        if not os.path.isfile(data_path):
+            raise ConfigValidationError(f"data_path file does not exist: {data_path}")
+
     # UTM validation logic
     utm_zone = config.get('utm_zone')
     utm_hemisphere = config.get('utm_hemisphere')
@@ -152,10 +194,6 @@ def validate_config(config):
         (utm_zone is None or utm_hemisphere is None)):
         print("Warning: extent appears to be in UTM coordinates but utm_zone/utm_hemisphere not specified.")
         print("Consider specifying utm_zone and utm_hemisphere, or provide extent in geographic coordinates (longitude/latitude).")
-    
-    # File existence
-    if not os.path.isfile(config['data_path']):
-        raise ConfigValidationError(f"data_path file does not exist: {config['data_path']}")
     # Value checks
     for k in ['dx', 'dy', 'dz']:
         if config[k] <= 0:
@@ -178,8 +216,26 @@ def validate_config(config):
             if not isinstance(v, str):
                 raise ConfigValidationError("All elements of variable list must be strings")
     # fill_nan
-    if 'fill_nan' in config and config['fill_nan'] not in [None, 'vertical', 'horizontal']:
-        raise ConfigValidationError("fill_nan must be 'vertical', 'horizontal', or null")
+    if 'fill_nan' in config and config['fill_nan'] not in [None, 'vertical', 'horizontal', 'lateral']:
+        raise ConfigValidationError("fill_nan must be 'vertical', 'horizontal', 'lateral', or null")
+    
+    # Boolean options validation
+    boolean_options = ['use_gui', 'generate_mesh', 'generate_topography', 'plot_outer_shell', 'show_plot', 'filter_topography']
+    for opt in boolean_options:
+        if opt in config and not isinstance(config[opt], bool):
+            raise ConfigValidationError(f"'{opt}' must be a boolean (true/false)")
+    
+    # Float format validation
+    if 'float_format' in config:
+        if not isinstance(config['float_format'], str):
+            raise ConfigValidationError("float_format must be a string")
+        # Basic validation that it looks like a format string
+        try:
+            test_val = 123.456789
+            config['float_format'] % test_val
+        except (TypeError, ValueError):
+            raise ConfigValidationError("float_format must be a valid Python format string (e.g., '%.8f')")
+    
     # Mesh options
     if config.get('generate_mesh', False):
         mesh_required = [
@@ -218,11 +274,47 @@ def validate_config(config):
             raise ConfigValidationError("All slope_thresholds must be numbers")
         if not (isinstance(config['smoothing_sigma'], (int, float)) or config['smoothing_sigma'] == 'auto'):
             raise ConfigValidationError("smoothing_sigma must be a number or 'auto'")
+        # Validate slope threshold values are reasonable (0-90 degrees)
+        for threshold in config['slope_thresholds']:
+            if not (0 <= threshold <= 90):
+                raise ConfigValidationError(f"slope_thresholds must be between 0 and 90 degrees, got {threshold}")
+        # Validate smoothing_sigma is positive if numeric
+        if isinstance(config['smoothing_sigma'], (int, float)) and config['smoothing_sigma'] < 0:
+            raise ConfigValidationError("smoothing_sigma must be >= 0 when numeric")
     # Tomography output
     if 'tomo_output_dir' in config and not isinstance(config['tomo_output_dir'], str):
         raise ConfigValidationError("tomo_output_dir must be a string")
     # Plotting
-    if 'plot_color_by' in config and config['plot_color_by'] not in ['vp', 'vs', 'rho']:
-        raise ConfigValidationError("plot_color_by must be 'vp', 'vs', or 'rho'")
+    if 'plot_color_by' in config:
+        plot_var = config['plot_color_by']
+        if not isinstance(plot_var, str):
+            raise ConfigValidationError("plot_color_by must be a string (vp, vs, rho, or a Cij anisotropic parameter)")
+        
+        variables = config['variable']
+        if isinstance(variables, str):
+            variables = [variables]
+        
+        # Check if it's anisotropic
+        anisotropic_components = [
+            'c11', 'c12', 'c13', 'c14', 'c15', 'c16',
+            'c22', 'c23', 'c24', 'c25', 'c26',
+            'c33', 'c34', 'c35', 'c36',
+            'c44', 'c45', 'c46',
+            'c55', 'c56',
+            'c66'
+        ]
+        var_lower = [v.lower() for v in variables]
+        is_anisotropic = any(comp in var_lower for comp in anisotropic_components)
+        
+        if is_anisotropic:
+            # For anisotropic models, allow any variable in the list plus 'rho'
+            valid_plot_vars = [v.lower() for v in variables]
+            if plot_var.lower() not in valid_plot_vars:
+                raise ConfigValidationError(f"plot_color_by '{plot_var}' must be one of the variables: {variables}")
+        else:
+            # For isotropic models, use original validation
+            if plot_var not in ['vp', 'vs', 'rho']:
+                raise ConfigValidationError("plot_color_by must be 'vp', 'vs', or 'rho' for isotropic models")
+    
     # All checks passed
     return True
