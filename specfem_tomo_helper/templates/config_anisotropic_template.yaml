@@ -1,0 +1,78 @@
+# This is a template config file for anisotropic models with specfem_tomo_helper
+
+# Path to NetCDF model with anisotropic stiffness tensor components
+data_path: 'path/to/your/anisotropic_model.nc'  # Update with your actual model path
+
+# Grid spacing (meters)
+dx: 10000
+dy: 10000
+dz: 1000
+
+# Elevation range (km, negative down, positive values are above sea level, negative values are below)
+z_min: -100  # Adjust as needed
+z_max: 0     # Top of the model, typically sea level or max elevation in the model
+
+# Full anisotropic stiffness tensor components + density
+# All 21 independent components of the 6x6 stiffness tensor are required
+variable: 
+  - 'c11'
+  - 'c12'
+  - 'c13'
+  - 'c14'
+  - 'c15'
+  - 'c16'
+  - 'c22'
+  - 'c23'
+  - 'c24'
+  - 'c25'
+  - 'c26'
+  - 'c33'
+  - 'c34'
+  - 'c35'
+  - 'c36'
+  - 'c44'
+  - 'c45'
+  - 'c46'
+  - 'c55'
+  - 'c56'
+  - 'c66'
+  - 'rho'
+
+# Fill NaN values - 'lateral' is typically better for anisotropic models
+fill_nan: 'vertical'
+
+# UTM projection zone and hemisphere
+utm_zone: null  # Set to null to use GUI for zone selection
+utm_hemisphere: null  # Set to null to use GUI for hemisphere selection
+
+# Area of Interest (optional, set by GUI if not present)
+extent: null # [xmin, xmax, ymin, ymax] in projected coordinates
+use_gui: true # Force GUI even if extent is set
+
+# Mesh generation options (same as isotropic)
+generate_mesh: true
+mesh_output_dir: './meshfem3D_files'
+max_depth: 250.0  # in km
+dx_target_km: 10.0  # Might want larger elements for anisotropic models
+dz_target_km: 10.0
+max_cpu: 64
+doubling_layers: [31.0, 80.0]  # in km
+
+# Topography generation options (same as isotropic)
+generate_topography: true
+topography_output_dir: './meshfem3D_files'
+slope_thresholds: [10, 15, 20]
+smoothing_sigma: 'auto'
+
+# Tomography output options
+tomo_output_dir: './tomo_files'
+float_format: '%.8f'  # Higher precision recommended for tensor components
+
+# Plotting options for anisotropic models
+plot_outer_shell: true
+plot_color_by: 'c11'  # Can be any of the Cij components or 'rho'
+show_plot: true
+
+# Note: For anisotropic models, the output file will contain the full stiffness tensor
+# in the format required by SPECFEM3D: x y z c11 c12 ... c66 rho
+# Cij values will be automatically converted from GPa to Pa (SI units) in the output
