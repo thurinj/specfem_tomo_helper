@@ -55,7 +55,7 @@ class Nc_model:
     def load_variable(self, varname, fill_nan=False):
         """ Load model parameters
 
-        Returns a Model_array object (values, name). the fill_nan flag is used to fill the nan values from the bottom-up. It proceeds with a sweep from the deepest part of the model and replaces all the nan values encountered from by the model value directly bellow.
+        Returns a Model_array object (values, name). The fill_nan flag can be set to 'vertical' to fill NaN values from bottom-up (deepest to shallowest). Any remaining NaN values will be extrapolated during interpolation using nearest neighbor.
         """
         dims = self.dataset.variables[str(varname)].dimensions
         var_data = np.array(self.dataset.variables[str(varname)][:, :, :].data)
@@ -95,22 +95,10 @@ class Nc_model:
             for depth_id in len(self.depth)-2-np.arange(len(self.depth)-1):
                 var_data[:,:,depth_id][np.isnan(var_data[:,:,depth_id])] = var_data[:,:,depth_id+1][np.isnan(var_data[:,:,depth_id])]
 
-        elif fill_nan == 'lateral':
-            "Initiating lateral filtering"
-            for depth_id in len(self.depth)-1-np.arange(len(self.depth)):
-                var_data[:,:,depth_id] = self._lateral_2D_NN(var_data[:,:,depth_id])
+        # Note: 'lateral' and 'horizontal' options removed since NaN values 
+        # are automatically extrapolated during interpolation using nearest neighbor
 
         return Model_array(varname, var_data)
-
-    def _lateral_2D_NN(self, array):
-        mask = np.where(~np.isnan(array))
-        if np.prod(np.shape(array)) == len(mask[0]):
-            return array
-        elif len(mask[0]) == 0 :
-            return np.zeros_like(array)
-        else:
-            interp_NN = NearestNDInterpolator(np.transpose(mask), array[mask])
-            return interp_NN(*np.indices(array.shape))
 
 
 

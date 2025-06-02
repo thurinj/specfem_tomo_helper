@@ -226,17 +226,21 @@ class TestMissingValidationCoverage:
         config['float_format'] = '%.8f'
         assert validate_config(config) is True
 
-    def test_fill_nan_lateral_option(self):
-        """Test that 'lateral' is accepted as a valid fill_nan option."""
+    def test_fill_nan_options(self):
+        """Test that valid fill_nan options are accepted."""
         config = VALID_CONFIG.copy()
         
-        # 'lateral' should be valid (used in anisotropic models)
-        config['fill_nan'] = 'lateral'
+        # 'vertical' should be valid
+        config['fill_nan'] = 'vertical'
+        assert validate_config(config) is True
+        
+        # null should be valid
+        config['fill_nan'] = None
         assert validate_config(config) is True
         
         # Invalid option should fail
-        config['fill_nan'] = 'diagonal'
-        with pytest.raises(ConfigValidationError, match="fill_nan must be 'vertical', 'horizontal', 'lateral', or null"):
+        config['fill_nan'] = 'lateral'
+        with pytest.raises(ConfigValidationError, match="fill_nan must be 'vertical' or null"):
             validate_config(config)
 
     def test_slope_thresholds_range_validation(self):

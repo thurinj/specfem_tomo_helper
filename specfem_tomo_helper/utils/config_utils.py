@@ -216,8 +216,8 @@ def validate_config(config):
             if not isinstance(v, str):
                 raise ConfigValidationError("All elements of variable list must be strings")
     # fill_nan
-    if 'fill_nan' in config and config['fill_nan'] not in [None, 'vertical', 'horizontal', 'lateral']:
-        raise ConfigValidationError("fill_nan must be 'vertical', 'horizontal', 'lateral', or null")
+    if 'fill_nan' in config and config['fill_nan'] not in [None, 'vertical']:
+        raise ConfigValidationError("fill_nan must be 'vertical' or null")
     
     # Boolean options validation
     boolean_options = ['use_gui', 'generate_mesh', 'generate_topography', 'plot_outer_shell', 'show_plot', 'filter_topography']

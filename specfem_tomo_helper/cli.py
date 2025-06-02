@@ -61,9 +61,55 @@ def validate_anisotropic_variables(variables):
 def main():
     global VERBOSE
     
+    parser = argparse.ArgumentParser(
+        description=(
+            'Run specfem_tomo_helper workflow from config file or create a template config.\n\n'
+            'Workflow summary:\n'
+            '  - Validates the provided YAML config file.\n'
+            '  - Loads NetCDF tomography model and extracts coordinates.\n'
+            '  - Handles UTM projection and extent (auto-detects if needed).\n'
+            '  - Interpolates model variables onto a regular grid.\n'
+            '  - Writes tomography files (isotropic or anisotropic).\n'
+            '  - Optionally generates mesh and topography files.\n'
+            '  - Optionally visualizes the outer shell of the model.\n\n'
+            'Use --create-config to generate a commented template config file.'
+        ),
+        epilog=(
+            'Config file arguments (YAML):\n'
+            '  data_path:         Path to input NetCDF model file.\n'
+            '  variable:          List of variables to extract (e.g. vp, vs, rho, or c11..c66, rho for anisotropic).\n'
+            '\nModel grid and extent parameters:\n'
+            '  extent:            [xmin, xmax, ymin, ymax] in UTM coordinates (optional, can use GUI).\n'
+            '  utm_zone, utm_hemisphere: UTM zone and hemisphere (required if extent is set; auto-detected if not provided).\n'
+            '  dx, dy, dz:        Grid spacing for the model (meters).\n'
+            '  z_min, z_max:      Depth range for the model (meters).\n'
+            '\nMesh resolution parameters (for mesh generation):\n'
+            '  dx_target_km, dz_target_km: Target mesh spacing (kilometers).\n'
+            '  doubling_layers:   List of depths (km) for mesh doubling (refinement layers).\n'
+            '  max_depth:         Maximum mesh depth (meters).\n'
+            '  max_cpu:           Max CPUs for mesh partitioning.\n'
+            '\nTopography processing parameters:\n'
+            '  smoothing_sigma:   Gaussian smoothing for topography (number or "auto").\n'
+            '  slope_thresholds:  List of slope thresholds for topography filtering.\n'
+            '      If smoothing_sigma is "auto", topography is smoothed until all slopes are below the minimum slope_threshold.\n'
+            '      Otherwise, smoothing_sigma sets the smoothing before filtering by slope_thresholds.\n'
+            '  filter_topography: true/false, whether to filter topography by slope.\n'
+            '\nOutput and other parameters:\n'
+            '  tomo_output_dir:   Output directory for tomography files.\n'
+            '  mesh_output_dir:   Output directory for mesh files.\n'
+            '  topography_output_dir: Output directory for topography files.\n'
+            '  generate_mesh:     true/false, whether to generate mesh files.\n'
+            '  generate_topography: true/false, whether to generate topography files.\n'
+            '  plot_outer_shell:  true/false, plot outer shell of the model.\n'
+            '  plot_color_by:     Which variable to color by in plot (vp, vs, rho).\n'
+            '\nFor more details, please have a look at the template config file generated with: --create-config.'
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument('--config', '-c', type=str, help='Path to YAML config file')
     parser.add_argument('--create-config', action='store_true', help='Create a template config YAML file and exit')
     parser.add_argument('--output', '-o', type=str, default='config_example.yaml', help='Output path for the template config file (used with --create-config)')
+    parser.add_argument('--anisotropic', action='store_true', help='Create a template config YAML file for anisotropic tomography model (used with --create-config)')
     parser.add_argument('--version', action='version', version=f'specfem-tomo-helper {__version__}')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output')
     args = parser.parse_args()
@@ -198,7 +244,7 @@ def main():
         verbose_print("Detected anisotropic model - processing full stiffness tensor")
         validate_anisotropic_variables(variables)
         for v in variables:
-            arr = nc_model.load_variable(v, fill_nan=config.get('fill_nan', 'lateral'))
+            arr = nc_model.load_variable(v, fill_nan=config.get('fill_nan', 'vertical'))
             var_arrays.append(arr)
             var_names.append(v.lower())
     else:
