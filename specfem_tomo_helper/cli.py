@@ -61,11 +61,9 @@ def validate_anisotropic_variables(variables):
 def main():
     global VERBOSE
     
-    parser = argparse.ArgumentParser(description='Run tomography workflow from config file or create a template config.')
     parser.add_argument('--config', '-c', type=str, help='Path to YAML config file')
     parser.add_argument('--create-config', action='store_true', help='Create a template config YAML file and exit')
     parser.add_argument('--output', '-o', type=str, default='config_example.yaml', help='Output path for the template config file (used with --create-config)')
-    parser.add_argument('--anisotropic', action='store_true', help='Create an anisotropic template config YAML file (used with --create-config)')
     parser.add_argument('--version', action='version', version=f'specfem-tomo-helper {__version__}')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output')
     args = parser.parse_args()
