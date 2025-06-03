@@ -55,7 +55,7 @@ class Nc_model:
     def load_variable(self, varname, fill_nan=False):
         """ Load model parameters
 
-        Returns a Model_array object (values, name). The fill_nan flag can be set to 'vertical' to fill NaN values from bottom-up (deepest to shallowest). Any remaining NaN values will be extrapolated during interpolation using nearest neighbor.
+        Returns a Model_array object (values, name). The fill_nan flag can be set to 'vertical' to fill NaN values from bottom-up (deepest to shallowest). Any remaining NaN values will be extrapolated laterally during interpolation using nearest neighbor.
         """
         dims = self.dataset.variables[str(varname)].dimensions
         var_data = np.array(self.dataset.variables[str(varname)][:, :, :].data)
