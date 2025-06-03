@@ -14,6 +14,7 @@ z_max: 0     # Top of the model, typically sea level or max elevation in the mod
 
 # Full anisotropic stiffness tensor components + density
 # All 21 independent components of the 6x6 stiffness tensor are required
+# Note: You don't really have to change these unless your model has different names
 variable: 
   - 'c11'
   - 'c12'
@@ -76,3 +77,5 @@ show_plot: true
 # Note: For anisotropic models, the output file will contain the full stiffness tensor
 # in the format required by SPECFEM3D: x y z c11 c12 ... c66 rho
 # Cij values will be automatically converted from GPa to Pa (SI units) in the output
+# You might want to check https://github.com/SPECFEM/specfem3d/pull/1435 which
+# added support for anisotropic models in SPECFEM3D
