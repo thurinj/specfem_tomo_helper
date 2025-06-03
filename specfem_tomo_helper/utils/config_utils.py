@@ -140,11 +140,6 @@ def validate_config(config):
                 f"For anisotropic models, all 21 stiffness tensor components (c11-c66) plus density (rho) are required."
             )
 
-    # Check for file existence
-    data_path = config.get('data_path')
-    if isinstance(data_path, str):
-        if not os.path.isfile(data_path):
-            raise ConfigValidationError(f"data_path file does not exist: {data_path}")
 
     # UTM validation logic
     utm_zone = config.get('utm_zone')

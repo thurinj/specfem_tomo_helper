@@ -8,6 +8,7 @@ from specfem_tomo_helper.projection import vp2rho, vp2vs, vs2vp, define_utm_proj
 from specfem_tomo_helper.fileimport import Nc_model
 from specfem_tomo_helper.utils import maptool, trilinear_interpolator, write_tomo_file, write_anisotropic_tomo_file, TopographyProcessor, MeshProcessor
 from specfem_tomo_helper.utils.config_utils import validate_config, ConfigValidationError, auto_detect_utm_from_extent, is_geographic_extent
+from specfem_tomo_helper.utils.download import download_if_missing
 from specfem_tomo_helper import __version__
 
 # Global verbose flag
@@ -145,6 +146,13 @@ def main():
 
     # Model and grid parameters
     path = config['data_path']
+    model_url = config.get('model_url', None)
+    if not os.path.isfile(path):
+        if model_url:
+            download_if_missing(path, model_url)
+        else:
+            print(f"Error: Model file '{path}' not found and no model_url provided in config.")
+            sys.exit(1)
     dx = config['dx']
     dy = config['dy']
     dz = config['dz']
