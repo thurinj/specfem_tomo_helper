@@ -16,6 +16,8 @@ z_min = -250  # shallowest depth (top)
 z_max = 0     # deepest depth (bottom)
 dz = 5000     # vertical grid spacing (in meters)
 
+output_dir = './topography_CSEM'  # Set output directory for mesh/topography
+
 # --- Loading, setting up and interpolation ... ---
 # Load the netCDF model
 nc_model = Nc_model(path)
@@ -48,7 +50,7 @@ param = np.vstack((vp, vsv, rho)).T  # Stack Vp, Vs, Rho for output
 # Format: [lon, lat, depth, vp, vs, rho] (needed for SPECFEM)
 tomo = np.hstack((coordinates, param))
 # Write the tomography file (outputs to current directory)
-write_tomo_file(tomo, interpolator, './')
+write_tomo_file(tomo, interpolator, output_dir)
 
 # The following steps are entirely optional and are only required
 # if you want to generate a mesh and interfaces for SPECFEM3D to
@@ -63,15 +65,19 @@ max_depth = 250.0  # in km (total mesh depth)
 mesh = MeshProcessor(interpolated_tomography=tomo, projection=gui_parameters.projection)
 mesh.suggest_horizontal_configs(dx_target_km=5.0, max_cpu=64, mode='choice', n_doublings=2)  # mesh element size target (in km)
 
-# Generate the mesh config, including vertical doubling layers (depths in meters, negative down)
-mesh.generate_dynamic_mesh_config(dz_target_km=5.0, max_depth=max_depth, doubling_layers=[-31000, -80000])
+# Generate the mesh config, including vertical doubling layers (depths in km, positive down)
+doubling_layers_km = [31, 80]  # in km, positive down
+# Convert to negative for SPECFEM3D convention
+neg_doubling_layers_km = [-dl for dl in doubling_layers_km]
+doubling_layers_m = [dl * 1000.0 for dl in neg_doubling_layers_km]
+mesh.generate_dynamic_mesh_config(dz_target_km=5.0, max_depth=max_depth, doubling_layers=doubling_layers_m)
 
 # Topography and interface generation using the mesh config
-topo = TopographyProcessor(interpolator, gui_parameters.projection, save_dir="./topography_CSEM", tomo=tomo, mesh_processor=mesh)
+topo = TopographyProcessor(interpolator, gui_parameters.projection, save_dir=output_dir, mesh_processor=mesh)
 topo.write_all_outputs(slope_thresholds=[10, 15, 20])
 
 # Write the mesh parameter file for SPECFEM
-mesh.write_parfile_easy(output_dir="./topography_CSEM")
+mesh.write_parfile_easy(output_dir=output_dir)
 
 # --- End of Mesh_Par_File and interfaces generation ---
 

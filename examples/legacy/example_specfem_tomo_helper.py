@@ -23,10 +23,11 @@ nc_model = Nc_model(path)
 # extract coordinates
 lon, lat, depth = nc_model.load_coordinates()
 # Load the 3 model parameters from the netCDF model
-vp = nc_model.load_variable('vp', fill_nan='lateral')
-vs = nc_model.load_variable('vs', fill_nan='lateral')
-rho = nc_model.load_variable('rho', fill_nan='lateral')
-# fill_nan is set to True here, as the shallow layers of the model contain nan values
+vp = nc_model.load_variable('vp', fill_nan='vertical')
+vs = nc_model.load_variable('vs', fill_nan='vertical')
+rho = nc_model.load_variable('rho', fill_nan='vertical')
+# fill_nan is set to 'vertical' to fill NaN values from bottom-up (deepest to shallowest).
+# NaN values remaining after vertical filling will be extrapolated during interpolation using nearest neighbor.
 
 # define pyproj custom projection. 11 North for South California
 myProj = define_utm_projection(11, 'N')
