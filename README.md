@@ -138,6 +138,43 @@ Optionally, the workflow can include:
 6. **Mesh Generation** - Create complete SPECFEM3D parameter files
 7. **Visualization** - Generate plots for validation and quality control
 
+
+## Meshing helper
+
+When using the meshing helper, you will be prompted to chose from 10 "best" configuration, based on a specified number of maximum CPU cores, a desired dx and dy:
+
+```python3
+   total_cpu  nproc_xi  nproc_eta  nex_xi  nex_eta           dx           dy  res_ratio
+0         63         9          7     216      168  4629.629630  4761.904762   1.028571
+1         60        12          5     192      160  5208.333333  5000.000000   1.041667
+2         60         6         10     192      160  5208.333333  5000.000000   1.041667
+3         56         8          7     192      168  5208.333333  4761.904762   1.093750
+4         50         5         10     200      160  5000.000000  5000.000000   1.000000
+5         52        13          4     208      160  4807.692308  5000.000000   1.040000
+6         55         5         11     200      176  5000.000000  4545.454545   1.100000
+7         64         8          8     192      192  5208.333333  4166.666667   1.250000
+8         63         7          9     168      144  5952.380952  5555.555556   1.071429
+9         48        12          4     192      160  5208.333333  5000.000000   1.041667
+Index ➜ 
+```
+
+The mesh helper will run a grid search internally through all possible **horizontal** mesh configurations and display the ten best, according to a predefined cost function (which is somewhat ad-hoc, so please use judgment when reviewing these results).
+
+The code will try to balance closeness to the desired resolution, a maximum number of CPU cores (`total_cpu `), horizontal element aspect ratio (`res_ratio`), and the load balance between `nproc_xi` and `nproc_eta.` It will always return a solution that satisfies SPECFEM3D internal meshes constraint on the number of cores (see [SPECFEM3D manual chap. 3](https://specfem3d.readthedocs.io/en/latest/03_mesh_generation/) for reference). 
+
+You just have to type the index (a single digit) and press Enter to use the configuration you like the most.
+
+## Topography helper
+
+Likewise, I tried to make the topography helper as simple as possible. By default, it will re-interpolate the ETOPO1 on the regular grid defined by the **interpolated tomographic model**. 
+
+The slope thresholds list is used to visually assess the number of points that exceed the specified thresholds. When used in conjunction with the 'auto' smoothing parameter, the topography will be smoothed using an iterative diffusion scheme until no more points exceed the smallest threshold. 
+
+I will add an option to use the mesh parameters for regridding ETOPO1 rather than always using the interpolated model by default.*
+
+---
+
+
 ### Contribution ideas
 The code recieved a major overhaul for version 0.2, yet, there are two features that would make the code more complete and would be great additions. Any help contributing to the code, or specifically with these two items are welcome:
 
