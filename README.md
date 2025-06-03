@@ -1,9 +1,14 @@
 # specfem_tomo_helper
 
-`specfem_tomo_helper` is a program to generate the external tomography files required by specfem3D, from netCDF4 models available at [IRIS EMC](http://ds.iris.edu/ds/products/emc/). The intent of this code is to streamline the generation of these tomographic files.
-The Area of Interest (AoI) of these tomographic files can be selected by direct input (in UTM coordinates as in specfem), or with a graphical user interface to select the AoI.
+`specfem_tomo_helper` is a tool designed to generate external tomography files, mesh files, and topography files required by SPECFEM3D from netCDF4 Earth models available at [IRIS EMC](http://ds.iris.edu/ds/products/emc/). 
 
->***:warning: This package is work in progress and NOT YET READY FOR PRODUCTIVE USE.***
+The tool provides a streamlined, configuration-file-driven workflow for:
+
+- Tomography file generation -- converts netCDF models into SPECFEM3D-compatible text files, with support for both isotropic and anisotropic media (up to 21 $C_{ij}$ elastic parameters)
+- Mesh generation -- generates complete SPECFEM3D mesh configurations, including automated doubling layer placement and optimized CPU distribution
+- Topography processing -- produces surface geometry layers to accommodate complex terrain and internal boundaries
+
+The main workflow is based on model re-gridding (via trilinear interpolation), an interactive GUI for region selection, and a streamlined workflow based entirely on editable configuration files. All of these automation features are geared toward begginers. 
 
 ## Installation
 
@@ -39,37 +44,107 @@ If you prefer to use pip, follow these steps:
    pip install -e .
    ```
 
-### Running specfem_tomo_helper
-From here, you can move to the examples folder, where you can try 2 examples for 2D and 3D interpolation.
-In both instances, the mandatory user inputs are `dx` (easting sampling in m), `dy` (northing sampling in m), `dz` (depth sampling in m), `zmin` and `zmax` (min and max depth in km, with positives upward).
+## Quick Start Guide
 
-#### Bilinear interpolation
-The first should be used for very dense models where trilinear interpolation would be too expensive to use. The included example is the SCEC south Californian model [EMC-CVM_H_v15_1](http://ds.iris.edu/ds/products/emc-cvm_h_v15_1/). This example performs the interpolation over a cartesian grid at each depth slice defined in the netCDF model. This example proposes two user modes. 1) directly input spcefem3D Mesh_Par_File latitude and longitude informations to select the interpolation bounds (`mode = 1` in the script). 2) interactive graphical user interface based on `matplotlib` and `cartopy` (`mode = 2` in the script).
+### 1. Create a Configuration File
 
-You can run the trilinear interpolator code with
-```
-$ python example_specfem_tomo_helper.py
-```
-The mode variable can be changed in the source code depending on users' preference.
+Generate a template configuration file to get started:
 
-#### Trilinear interpolation
-The latter example (3D interpolation) is the option to favor for sparse models. It was tested on 1° lat/lon and 0.5° lat/lon resolution models and proved to be perfectly appropriate.
-The test model included is the [CSEM_Europe_2019.12.01](http://ds.iris.edu/ds/products/emc-csem_europe/).
+```bash
+# For isotropic models (Vp, Vs, density)
+tomo-helper --create-config --output my_config.yaml
 
-You can run the trilinear interpolator code with
-```
-$ python example_specfem_tomo_helper_3D.py
+# For anisotropic models (21-parameter elastic tensor)
+tomo-helper --create-config --anisotropic --output my_anisotropic_config.yaml
 ```
 
-### What's coming next - Contribution ideas
-`specfem_tomo_helper` has only the most basic features so far. It functions with two modes, namely a bilinear and a trilinear interpolation mode, depending on the spatial sampling of the original netCDF model to interpolate.
+### 2. Edit the Configuration
 
+Open the generated configuration file and modify the key parameters:
 
-There are currently two features that would make the code more complete and would be great additions. Any help contributing to the code, or specifically with these two items are welcome:
+```yaml
+# Path to your NetCDF model
+data_path: 'path/to/your/model.nc'
+
+# Grid spacing in meters (interval spacing for interpolation)
+dx: 5000
+dy: 5000  
+dz: 5000
+
+# Elevation range in km (negative below sea level)
+z_min: -40
+z_max: 0
+
+# Variable(s) to interpolate
+variable: ['vp', 'vs', 'rho']  # or single variable like 'vs'
+# You should be able to see what parameters are defined in the netCDF model
+# by using ncdump -h <data_path> beforehand or looking at the metadata on IRIS EMC.
+
+# Area selection (set to null to use interactive GUI)
+utm_zone: null
+utm_hemisphere: null
+extent: null
+use_gui: true
+
+```
+
+By default, some fields are set to ensure the Meshing and Topography generation helpers are run, but you can disable them by setting `generate_mesh: false` or `generate_topography: false`.
+
+### 3. Run the Tool
+
+Execute the tool with your configuration file:
+
+```bash
+tomo-helper --config my_config.yaml --verbose
+```
+
+## Command Line Interface
+
+### Basic Usage
+
+```bash
+# Run with configuration file
+tomo-helper -c my_config.yaml
+
+# Enable verbose output for detailed logging
+tomo-helper -c my_config.yaml --verbose
+
+# Show help and available options
+tomo-helper --help
+
+# Create a new configuration file template
+tomo-helper --create-config --output my_config.yaml
+
+# Create a new configuration file template for anisotropic models
+tomo-helper --create-config --anisotropic --output my_config_ani.yaml
+
+# Specify an output path
+tomo-helper --create-config --output /path/to/my_config.yaml
+
+```
+
+## Workflow Overview
+
+The tool follows an automated workflow that generates some of the key files needed for SPECFEM3D:
+
+1. **Model Loading** - Reads netCDF4 Earth models from IRIS EMC
+2. **Area Selection** - Interactive GUI or predefined UTM coordinates
+3. **3D Interpolation** - Trilinear interpolation onto regular grid
+4. **Tomography Files** - Generate SPECFEM3D-compatible `.xyz` files (raw text file)
+
+Optionally, the workflow can include:
+
+5. **Topography Processing** - Extract and smooth surface topography 
+6. **Mesh Generation** - Create complete SPECFEM3D parameter files
+7. **Visualization** - Generate plots for validation and quality control
+
+### Contribution ideas
+The code recieved a major overhaul for version 0.2, yet, there are two features that would make the code more complete and would be great additions. Any help contributing to the code, or specifically with these two items are welcome:
 
 #### Rotated domain
-As of now, the regular interpolation grid can only be along the N-E directions. It would be desirable to be able to interpolate onto any rotated cartesian grid, such that the model size can be optimized to save on numerical modeling costs afterward.
+As of now, the regular interpolation grid can only be along the N-E directions. It would be desirable to be able to interpolate onto any rotated cartesian grid, such that the model size can be optimized to save on numerical modeling costs afterward (say, if you need to create a simulation domain that aligns with NE-SW).
 
 #### Multiple tomographic files
-The current bilinear interpolator only outputs a single tomographic file with regular x, y and z sampling. However, on very dense models and large modeling domains, the `tomography_file.xyz` can rapidly grow in size and become impractical to work with.
+The current interpolator only outputs a single tomographic file with regular x, y and z sampling. However, on very dense models and large modeling domains, the `tomography_file.xyz` can rapidly grow in size and become impractical to work with.
 To mitigate that issue, the model domain can be split in several vertical chunks with varying spatial sampling (with the chunks becoming coarser with depth), and read as several distinct tomographic files by specfem3D.
+This is currently doable by playing with the config files, but it would be nice to have an optional flag that automatically generates coarser models when doubling are used.
