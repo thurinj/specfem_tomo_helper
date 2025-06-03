@@ -3,11 +3,17 @@
 from specfem_tomo_helper.projection import vp2rho, vp2vs, vs2vp, define_utm_projection
 from specfem_tomo_helper.fileimport import Nc_model
 from specfem_tomo_helper.utils import maptool, trilinear_interpolator, write_tomo_file, TopographyProcessor, MeshProcessor
+from specfem_tomo_helper.utils.download import download_if_missing
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 # --- Model and grid parameters ---
-path = '../data/csem-europe-2019.12.01.nc'  # Path to your NetCDF model
+path = '../data/csem-europe-2019.12.01.nc'
+model_url = 'https://ds.iris.edu/files/products/emc/emc-files/csem-europe-2019.12.01.nc'
+if not os.path.isfile(path):
+    download_if_missing(path, model_url)
+
 # Grid spacing (in meters)
 dx = 5000
 dy = 5000

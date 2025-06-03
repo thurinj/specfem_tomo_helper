@@ -5,11 +5,12 @@ from specfem_tomo_helper.fileimport import Nc_model
 from specfem_tomo_helper.utils import maptool, bilinear_interpolator, write_tomo_file
 import subprocess
 import os
+from specfem_tomo_helper.utils.download import download_if_missing
 
 path = '../data/SCEC-CVM-H-v15-1-n4.nc'
-
+model_url = 'https://ds.iris.edu/files/products/emc/emc-files/SCEC-CVM-H-v15-1-n4.nc'
 if not os.path.isfile(path):
-    subprocess.call(['wget', '-P', '../data/', 'http://ds.iris.edu/files/products/emc/emc-files/SCEC-CVM-H-v15-1-n4.nc'])
+    download_if_missing(path, model_url)
 
 # Mandatory inputs:
 dy = 1000  # in m

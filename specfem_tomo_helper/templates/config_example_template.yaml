@@ -2,6 +2,8 @@
 
 # Path to NetCDF model
 data_path: 'path/to/your/model.nc'  # Update with your actual model path
+# Optional: URL to download the model if not present
+model_url: null  # e.g. 'https://ds.iris.edu/files/products/emc/emc-files/csem-europe-2019.12.01.nc'
 
 # Grid spacing (meters)
 dx: 5000
