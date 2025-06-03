@@ -3,7 +3,7 @@ from setuptools import find_packages, setup, Extension
 
 setuptools.setup(
     name="specfem_tomo_helper", # Replace with your own username
-    version="0.1",
+    version="0.2.0",
     license="GPLv3",
     description="Helper package for specfem3D tomography files",
     author="Julien Thurin",
