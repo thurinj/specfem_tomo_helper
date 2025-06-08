@@ -11,5 +11,9 @@ dependencies:
   - cartopy
   - netCDF4
   - jinja2
+  - ruamel.yaml
+  - requests
+  - scikit-learn
+  - matplotlib
   - pip:
     - -e .
