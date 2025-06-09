@@ -55,30 +55,85 @@ class TopographyProcessor:
         os.makedirs(self.save_dir, exist_ok=True)
         self.filename: Optional[str] = None
 
+    def _show_progress(self, block_num, block_size, total_size):
+        """
+        Show download progress bar in the terminal.
+        """
+        downloaded = block_num * block_size
+        percent = min(100, downloaded * 100 / total_size) if total_size > 0 else 0
+        bar_len = 40
+        filled_len = int(bar_len * percent // 100)
+        bar = '=' * filled_len + '-' * (bar_len - filled_len)
+        print(f'\r[Downloading] |{bar}| {percent:.1f}% ', end='')
+        if downloaded >= total_size:
+            print()  # Newline at end
+
     def download_etopo_netcdf(self) -> str:
         """
         Downloads the ETOPO1 NetCDF file if not already present in the package's download directory.
+        Supports resuming interrupted downloads.
 
         Returns
         -------
         str
             Path to the downloaded or existing ETOPO1 NetCDF file.
         """
+        import requests
+        import gzip
+        import shutil
+        import time
         url = "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO1/data/bedrock/grid_registered/netcdf/ETOPO1_Bed_g_gmt4.grd.gz"
         data_dir = os.path.join(os.path.dirname(__file__), '../download')
         os.makedirs(data_dir, exist_ok=True)
-        self.filename = os.path.join(data_dir, "ETOPO1_Ice_c_gmt4.grd")
-        if not os.path.isfile(self.filename):
-            logging.warning(f"ETOPO1 NetCDF file not found at {self.filename}. Please download it manually from {url}.")
-            # Optionally, implement download logic here.
-        return self.filename
-
-    @staticmethod
-    def _show_progress(block_num: int, block_size: int, total_size: int) -> None:
-        """
-        Show download progress (placeholder for future implementation).
-        """
-        pass
+        unzipped_filename = os.path.join(data_dir, "ETOPO1_Bed_g_gmt4.grd")
+        gzipped_filename = unzipped_filename + ".gz"
+        self.filename = unzipped_filename
+        max_attempts = 5
+        attempt = 0
+        while not os.path.isfile(unzipped_filename):
+            attempt += 1
+            try:
+                resume_byte_pos = 0
+                headers = {}
+                if os.path.exists(gzipped_filename):
+                    resume_byte_pos = os.path.getsize(gzipped_filename)
+                    if resume_byte_pos > 0:
+                        headers['Range'] = f'bytes={resume_byte_pos}-'
+                logging.info(f"ETOPO1 NetCDF file not found at {unzipped_filename}. Downloading from {url} (attempt {attempt})...")
+                with requests.get(url, stream=True, headers=headers, timeout=60) as r:
+                    r.raise_for_status()
+                    mode = 'ab' if resume_byte_pos > 0 else 'wb'
+                    total_size = int(r.headers.get('Content-Range', '').split('/')[-1] or r.headers.get('Content-Length', 0))
+                    if not total_size:
+                        total_size = None
+                    downloaded = resume_byte_pos
+                    bar_len = 40
+                    with open(gzipped_filename, mode) as f:
+                        for chunk in r.iter_content(chunk_size=1024*1024):
+                            if chunk:
+                                f.write(chunk)
+                                downloaded += len(chunk)
+                                if total_size:
+                                    percent = min(100, downloaded * 100 / total_size)
+                                    filled_len = int(bar_len * percent // 100)
+                                    bar = '=' * filled_len + '-' * (bar_len - filled_len)
+                                    print(f'\r[Downloading] |{bar}| {percent:.1f}% ', end='')
+                    if total_size:
+                        print()
+                logging.info(f"Downloaded {gzipped_filename}. Decompressing...")
+                with gzip.open(gzipped_filename, 'rb') as f_in:
+                    with open(unzipped_filename, 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+                os.remove(gzipped_filename)
+                logging.info(f"ETOPO1 NetCDF file ready at {unzipped_filename}.")
+            except Exception as e:
+                logging.warning(f"Download failed (attempt {attempt}): {e}")
+                if os.path.exists(gzipped_filename):
+                    os.remove(gzipped_filename)
+                if attempt >= max_attempts:
+                    raise RuntimeError(f"Failed to download ETOPO1 after {max_attempts} attempts.") from e
+                time.sleep(2)  # Wait before retrying
+        return unzipped_filename
 
     def get_etopo_data_netcdf(
         self,
