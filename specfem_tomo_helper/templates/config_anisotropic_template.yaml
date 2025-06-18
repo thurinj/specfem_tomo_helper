@@ -39,7 +39,7 @@ variable:
   - 'c66'
   - 'rho'
 
-# Fill NaN values - 'lateral' is typically better for anisotropic models
+# How to fill NaNs: 'vertical' or null
 fill_nan: 'vertical'
 
 # UTM projection zone and hemisphere
