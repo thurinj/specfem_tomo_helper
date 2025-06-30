@@ -54,15 +54,14 @@ class trilinear_interpolator():
         self.zmax = zspecfem_max * 1e3
         self.dz = dz
 
-        self.x_interp_coordinates = np.arange(self.xspecfem_min,
-                                              self.xspecfem_max + self.dx,
-                                              self.dx)
-        self.y_interp_coordinates = np.arange(self.yspecfem_min,
-                                              self.yspecfem_max + self.dy,
-                                              self.dy)
-        self.z_interp_coordinates = np.arange(self.zmin,
-                                              self.zmax + self.dz,
-                                              self.dz)
+
+        nx = int(np.round((self.xspecfem_max - self.xspecfem_min) / self.dx)) + 1
+        ny = int(np.round((self.yspecfem_max - self.yspecfem_min) / self.dy)) + 1
+        nz = int(np.round((self.zmax - self.zmin) / self.dz)) + 1
+        
+        self.x_interp_coordinates = np.linspace(self.xspecfem_min, self.xspecfem_max, nx)
+        self.y_interp_coordinates = np.linspace(self.yspecfem_min, self.yspecfem_max, ny)
+        self.z_interp_coordinates = np.linspace(self.zmin, self.zmax, nz)
 
         self.X_grid, self.Y_grid, self.Z_grid = np.meshgrid(
             self.x_interp_coordinates,
