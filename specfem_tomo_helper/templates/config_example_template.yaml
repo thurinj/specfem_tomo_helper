@@ -28,7 +28,7 @@ use_gui: true # Force GUI even if extent is set
 
 # Mesh generation options
 generate_mesh: true
-mesh_output_dir: './meshfem3D_files'  # Directory for mesh files
+mesh_output_dir: './DATA/meshfem3D_files'  # Directory for mesh files
 max_depth: 250.0  # in km
 dx_target_km: 5.0
 dz_target_km: 5.0
@@ -37,12 +37,12 @@ doubling_layers: [31.0, 80.0]  # in km
 
 # Topography generation options
 generate_topography: true
-topography_output_dir: './meshfem3D_files'
+topography_output_dir: './DATA/meshfem3D_files'
 slope_thresholds: [10, 15, 20] # Diagnostic thresholds for slope in degrees. Lower value is used for 'auto' smoothing.
 smoothing_sigma: 'auto'  # Sigma for Gaussian smoothing of topography (default: 1, or 'auto' for adaptive smoothing)
 
 # Tomography output options
-tomo_output_dir: './tomo_files'  # Directory for tomography_model.xyz
+tomo_output_dir: './DATA/tomo_files'  # Directory for tomography_model.xyz
 
 # Plotting options
 plot_outer_shell: true

@@ -58,7 +58,7 @@ use_gui: true # Force GUI even if extent is set
 
 # Mesh generation options (same as isotropic)
 generate_mesh: true
-mesh_output_dir: './meshfem3D_files'
+mesh_output_dir: './DATA/meshfem3D_files'
 max_depth: 250.0  # in km
 dx_target_km: 10.0  # Might want larger elements for anisotropic models
 dz_target_km: 10.0
@@ -67,12 +67,12 @@ doubling_layers: [31.0, 80.0]  # in km
 
 # Topography generation options (same as isotropic)
 generate_topography: true
-topography_output_dir: './meshfem3D_files'
+topography_output_dir: './DATA/meshfem3D_files'
 slope_thresholds: [10, 15, 20]
 smoothing_sigma: 'auto'
 
 # Tomography output options
-tomo_output_dir: './tomo_files'
+tomo_output_dir: './DATA/tomo_files'
 float_format: '%.1f'  # Higher precision recommended for tensor components
 
 # Plotting options for anisotropic models
