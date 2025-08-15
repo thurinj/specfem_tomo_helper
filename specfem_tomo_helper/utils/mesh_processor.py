@@ -421,7 +421,7 @@ class MeshProcessor:
         filename: str = "Mesh_Par_file"
     ) -> None:
         """
-        Write the Par_file with minimal user input, using default or inferred parameters.
+        Write the Mesh_Par_file with minimal user input, using default or inferred parameters.
 
         Parameters
         ----------

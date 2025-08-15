@@ -42,7 +42,7 @@ def define_utm_projection(utm_zone: int, hemisphere: str) -> pyproj.proj.Proj:
 
     Notes
     ----------
-    Using this function should be the preffered way to define the projection
+    Using this function should be the preferred way to define the projection
     from lat/lon to utm easting and northing. If desired, users can handle the
     projection themselves by defining a custom pyproj.proj.Proj object.
 
