@@ -3,6 +3,12 @@
 # Path to NetCDF model with anisotropic stiffness tensor components
 data_path: 'path/to/your/anisotropic_model.nc'  # Update with your actual model path
 
+# Basis for the local 3D cartesian coordinate system used in the netCDF model.
+# Should be a right-handed system defined by an ordered set of 3 directions -
+# east, west, north, south, up, down; combined using underscores into a string,
+# e.g., 'east_north_up', 'north_east_down', 'south_east_up'.
+basis: null
+
 # Grid spacing (meters)
 dx: 10000
 dy: 10000
