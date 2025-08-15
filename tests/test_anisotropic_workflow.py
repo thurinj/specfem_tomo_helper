@@ -225,4 +225,4 @@ class TestAnisotropicWorkflow:
             assert 'c66' in variables
             assert 'rho' in variables
             assert config['fill_nan'] == 'vertical'
-            assert config['float_format'] == '%.8f'
+            assert config['float_format'] == '%.1f'

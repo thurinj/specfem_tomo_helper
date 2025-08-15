@@ -73,7 +73,7 @@ smoothing_sigma: 'auto'
 
 # Tomography output options
 tomo_output_dir: './tomo_files'
-float_format: '%.8f'  # Higher precision recommended for tensor components
+float_format: '%.1f'  # Higher precision recommended for tensor components
 
 # Plotting options for anisotropic models
 plot_outer_shell: true
