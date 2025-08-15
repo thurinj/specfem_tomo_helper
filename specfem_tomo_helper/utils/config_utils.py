@@ -93,6 +93,13 @@ def validate_config(config):
         if not isinstance(config[key], typ):
             raise ConfigValidationError(f"Config option '{key}' must be of type {typ}, got {type(config[key])}")
 
+    # Check if data_path exists
+    if not os.path.isfile(config['data_path']):
+        raise ConfigValidationError(
+            f"data_path '{config['data_path']}' "
+            f"does not exist or is not a file"
+        )
+
     # Early validation of extent (before UTM logic that uses it)
     if 'extent' in config and config['extent'] is not None:
         if not (isinstance(config['extent'], list) and len(config['extent']) == 4):
