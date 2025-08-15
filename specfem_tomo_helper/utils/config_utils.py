@@ -92,7 +92,7 @@ def validate_config(config):
             raise ConfigValidationError(f"Missing required config option: {key}")
         if not isinstance(config[key], typ):
             raise ConfigValidationError(f"Config option '{key}' must be of type {typ}, got {type(config[key])}")
-    
+
     # Early validation of extent (before UTM logic that uses it)
     if 'extent' in config and config['extent'] is not None:
         if not (isinstance(config['extent'], list) and len(config['extent']) == 4):
@@ -140,6 +140,37 @@ def validate_config(config):
                 f"For anisotropic models, all 21 stiffness tensor components (c11-c66) plus density (rho) are required."
             )
 
+        # Check if 'basis' is provided and validate basis
+        if 'basis' not in config:
+            raise ConfigValidationError(
+                f"Missing required config option: "
+                f"'basis' for anisotropic models. "
+            )
+        else:
+            basis = config.get('basis')
+            allowed_basis_elements = [
+                'east', 'west', 'north', 'south', 'up', 'down'
+            ]
+            if basis is not None:
+                if not isinstance(basis, str):
+                    raise ConfigValidationError(
+                        f"Expected string or None, got {type(basis).__name__}"
+                    )
+
+                basis_elements = basis.split('_')
+                if len(basis_elements) != 3:
+                    raise ConfigValidationError(
+                        f"'{basis}' must consist of exactly three directions "
+                        f"separated by underscores. "
+                        f"Allowed directions are: {allowed_basis_elements}"
+                    )
+
+                for basis_element in basis_elements:
+                    if basis_element.lower() not in allowed_basis_elements:
+                        raise ConfigValidationError(
+                          f"Invalid direction '{basis_element}' in '{basis}'. "
+                          f"Allowed directions are: {allowed_basis_elements}"
+                        )
 
     # UTM validation logic
     utm_zone = config.get('utm_zone')

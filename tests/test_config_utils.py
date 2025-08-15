@@ -301,7 +301,7 @@ class TestMissingValidationCoverage:
     def test_anisotropic_mixed_case_variables(self):
         """Test anisotropic validation with mixed case variable names."""
         config = VALID_CONFIG.copy()
-        
+        config['basis'] = None
         # Test with mixed case - should still be detected as anisotropic
         config['variable'] = ['C11', 'c12', 'C13', 'c14', 'c15', 'c16',
                              'c22', 'c23', 'c24', 'c25', 'c26',
@@ -314,12 +314,44 @@ class TestMissingValidationCoverage:
     def test_anisotropic_partial_components_detection(self):
         """Test that partial anisotropic components trigger validation."""
         config = VALID_CONFIG.copy()
-        
+        config['basis'] = None
         # Just a few anisotropic components should trigger anisotropic detection
         # but fail validation due to missing components
         config['variable'] = ['c11', 'c22', 'c33']
         with pytest.raises(ConfigValidationError, match="Anisotropic model detected but missing required components"):
             validate_config(config)
+
+    def test_anisotropic_input_basis_definition(self):
+        """Test anisotropic input basis definition."""
+        config = VALID_CONFIG.copy()
+        config['variable'] = ['c11', 'c12', 'c13', 'c14', 'c15', 'c16',
+                              'c22', 'c23', 'c24', 'c25', 'c26',
+                              'c33', 'c34', 'c35', 'c36',
+                              'c44', 'c45', 'c46',
+                              'c55', 'c56',
+                              'c66', 'rho']
+        config['basis'] = None
+        assert validate_config(config) is True
+        config['basis'] = 123
+        with pytest.raises(
+            ConfigValidationError,
+            match=f"Expected string or None, got int"
+        ): validate_config(config)
+        config['basis'] = "xyz"
+        with pytest.raises(
+            ConfigValidationError,
+            match=f"'xyz' must consist of exactly three directions separated "
+                  f"by underscores. Allowed directions are: \['east', 'west', "
+                  f"'north', 'south', 'up', 'down'\]"
+        ): validate_config(config)
+        config['basis'] = "x_y_z"
+        with pytest.raises(
+            ConfigValidationError,
+            match=f"Invalid direction 'x' in 'x_y_z'. Allowed directions are: "
+                  f"\['east', 'west', 'north', 'south', 'up', 'down'\]"
+        ): validate_config(config)
+        config['basis'] = "east_down_up"
+        assert validate_config(config) is True
 
     def test_mesh_doubling_layers_edge_cases(self):
         """Test edge cases for doubling layers validation."""
@@ -359,6 +391,7 @@ class TestMissingValidationCoverage:
     def test_complex_anisotropic_plot_validation(self):
         """Test plot_color_by validation for anisotropic models."""
         config = VALID_CONFIG.copy()
+        config['basis'] = None
         config['variable'] = ['c11', 'c12', 'c13', 'c14', 'c15', 'c16',
                              'c22', 'c23', 'c24', 'c25', 'c26',
                              'c33', 'c34', 'c35', 'c36',
