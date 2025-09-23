@@ -17,3 +17,6 @@ dependencies:
   - matplotlib
   - pip:
     - -e .
+    # Optional:
+    # for transforming anisotropic models to the specfem3d_cartesian basis
+    #- git+https://github.com/uafgeotools/elasticmapper.git

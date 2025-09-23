@@ -65,6 +65,7 @@ class TestAnisotropicWorkflow:
         # Create a complete anisotropic config
         anisotropic_config = {
             'data_path': '/tmp/test.nc',  # Will be mocked
+            'basis': None,
             'dx': 10000,
             'dy': 10000,
             'dz': 1000,
@@ -92,6 +93,7 @@ class TestAnisotropicWorkflow:
         """Test config validation fails for incomplete anisotropic models."""
         incomplete_config = {
             'data_path': '/tmp/test.nc',
+            # Missing 'basis'
             'dx': 10000,
             'dy': 10000,
             'dz': 1000,
@@ -109,10 +111,26 @@ class TestAnisotropicWorkflow:
             
             assert "missing required components" in str(excinfo.value)
 
+        incomplete_config['variable'] = [
+            'c11', 'c12', 'c13', 'c14', 'c15', 'c16',
+             'c22', 'c23', 'c24', 'c25', 'c26',
+             'c33', 'c34', 'c35', 'c36',
+             'c44', 'c45', 'c46',
+             'c55', 'c56',
+             'c66', 'rho'
+        ]
+
+        with patch('os.path.isfile', return_value=True):
+            with pytest.raises(ConfigValidationError) as excinfo:
+                validate_config(incomplete_config)
+
+            assert "Missing required config option" in str(excinfo.value)
+
     def test_anisotropic_plot_color_by(self):
         """Test plot_color_by validation for anisotropic models."""
         anisotropic_config = {
             'data_path': '/tmp/test.nc',
+            'basis': None,
             'dx': 10000,
             'dy': 10000,
             'dz': 1000,
@@ -196,7 +214,10 @@ class TestAnisotropicWorkflow:
             # Check content of generated file
             with open(output_file, 'r') as f:
                 config = yaml.safe_load(f)
-            
+
+            # Verify it contains the parameter basis
+            assert 'basis' in config
+
             # Verify it contains all anisotropic components
             variables = config['variable']
             assert len(variables) == 22  # 21 Cij + rho
@@ -204,4 +225,4 @@ class TestAnisotropicWorkflow:
             assert 'c66' in variables
             assert 'rho' in variables
             assert config['fill_nan'] == 'vertical'
-            assert config['float_format'] == '%.8f'
+            assert config['float_format'] == '%.1f'

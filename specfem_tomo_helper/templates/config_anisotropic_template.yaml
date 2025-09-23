@@ -3,6 +3,12 @@
 # Path to NetCDF model with anisotropic stiffness tensor components
 data_path: 'path/to/your/anisotropic_model.nc'  # Update with your actual model path
 
+# Basis for the local 3D cartesian coordinate system used in the netCDF model.
+# Should be a right-handed system defined by an ordered set of 3 directions -
+# east, west, north, south, up, down; combined using underscores into a string,
+# e.g., 'east_north_up', 'north_east_down', 'south_east_up'.
+basis: null
+
 # Grid spacing (meters)
 dx: 10000
 dy: 10000
@@ -52,7 +58,7 @@ use_gui: true # Force GUI even if extent is set
 
 # Mesh generation options (same as isotropic)
 generate_mesh: true
-mesh_output_dir: './meshfem3D_files'
+mesh_output_dir: './DATA/meshfem3D_files'
 max_depth: 250.0  # in km
 dx_target_km: 10.0  # Might want larger elements for anisotropic models
 dz_target_km: 10.0
@@ -61,13 +67,13 @@ doubling_layers: [31.0, 80.0]  # in km
 
 # Topography generation options (same as isotropic)
 generate_topography: true
-topography_output_dir: './meshfem3D_files'
+topography_output_dir: './DATA/meshfem3D_files'
 slope_thresholds: [10, 15, 20]
 smoothing_sigma: 'auto'
 
 # Tomography output options
-tomo_output_dir: './tomo_files'
-float_format: '%.8f'  # Higher precision recommended for tensor components
+tomo_output_dir: './DATA/tomo_files'
+float_format: '%.1f'  # Higher precision recommended for tensor components
 
 # Plotting options for anisotropic models
 plot_outer_shell: true

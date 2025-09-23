@@ -1,6 +1,16 @@
 import setuptools
 from setuptools import find_packages, setup, Extension
 
+base_requirements=[
+    "numpy", "scipy", "pyproj",
+    "pandas", "cartopy", "netCDF4", "jinja2",
+    "ruamel.yaml", "requests", "scikit-learn", "matplotlib"
+]
+
+optional_requirements=[
+    "elasticmapper @ git+https://github.com/uafgeotools/elasticmapper.git"
+]
+
 setuptools.setup(
     name="specfem_tomo_helper", # Replace with your own username
     version="0.2.0",
@@ -26,11 +36,7 @@ setuptools.setup(
         "seismology"
     ],
     python_requires='~=3.6',
-    install_requires=[
-        "numpy", "scipy", "pyproj",
-        "pandas", "cartopy", "netCDF4", "jinja2",
-        "ruamel.yaml", "requests", "scikit-learn", "matplotlib"
-    ],
+    install_requires=base_requirements,
     entry_points={
         'console_scripts': [
             'tomo-helper=specfem_tomo_helper.cli:main',

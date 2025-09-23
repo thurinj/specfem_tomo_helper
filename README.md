@@ -130,13 +130,14 @@ The tool follows an automated workflow that generates some of the key files need
 1. **Model Loading** - Reads netCDF4 Earth models from IRIS EMC
 2. **Area Selection** - Interactive GUI or predefined UTM coordinates
 3. **3D Interpolation** - Trilinear interpolation onto regular grid
-4. **Tomography Files** - Generate SPECFEM3D-compatible `.xyz` files (raw text file)
+4. **Basis Transformation** - Transformation of anisotropic models to specfem3d_cartesian basis
+5. **Tomography Files** - Generate SPECFEM3D-compatible `.xyz` files (raw text file)
 
 Optionally, the workflow can include:
 
-5. **Topography Processing** - Extract and smooth surface topography 
-6. **Mesh Generation** - Create complete SPECFEM3D parameter files
-7. **Visualization** - Generate plots for validation and quality control
+6. **Topography Processing** - Extract and smooth surface topography 
+7. **Mesh Generation** - Create complete SPECFEM3D parameter files
+8. **Visualization** - Generate plots for validation and quality control
 
 
 ## Meshing helper

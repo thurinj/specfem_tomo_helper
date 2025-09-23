@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from specfem_tomo_helper.projection import vp2rho, vp2vs, vs2vp, define_utm_projection
 from specfem_tomo_helper.fileimport import Nc_model
 from specfem_tomo_helper.utils import maptool, trilinear_interpolator, write_tomo_file, write_anisotropic_tomo_file, TopographyProcessor, MeshProcessor
+from specfem_tomo_helper.utils.change_of_basis import transform
 from specfem_tomo_helper.utils.config_utils import validate_config, ConfigValidationError, auto_detect_utm_from_extent, is_geographic_extent
 from specfem_tomo_helper.utils.download import download_if_missing
 from specfem_tomo_helper import __version__
@@ -274,6 +275,16 @@ def main():
     coordinates = interpolated[:, 0:3]
     if is_anisotropic:
         param = interpolated[:, 3:]
+        # apply coordinate transformation if needed
+        basis = config['basis']
+        if basis is not None:
+            if basis.lower() != "east_north_up":
+                verbose_print(
+                    f"Transforming coordinates from basis: '{basis}' to"
+                    f" basis: 'east_north_up'"
+                )
+                for i, c_vec in enumerate(param[:, :-1]):
+                    param[i, :-1] = transform(c_vec, basis)
         tomo = np.hstack((coordinates, param))
     else:
         param_dict = {name: interpolated[:, 3 + i] for i, name in enumerate(var_names)}
