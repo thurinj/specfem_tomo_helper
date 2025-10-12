@@ -14,11 +14,23 @@ Notes
 All transformations assume right-handed coordinate systems.
 """
 
-from elasticmapper.core.rotation import rotation_mat_6d
-from elasticmapper.mapper_utils.change_of_basis import c_mat_of_t_mat
-from elasticmapper.mapper_utils.change_of_basis import t_mat_of_c_mat
-from elasticmapper.mapper_utils.utilities import v2sm, sm2v
 import numpy as np
+
+def _check_elasticmapper_available():
+    """Check if elasticmapper is available and raise an error if not."""
+    try:
+        import elasticmapper.core.rotation
+        import elasticmapper.mapper_utils.change_of_basis
+        import elasticmapper.mapper_utils.utilities
+        return True
+    except ImportError:
+        raise ImportError(
+            "The 'elasticmapper' package is required for anisotropic/elastic mapping features. "
+            "This package is only needed when using anisotropic tomography models. "
+            "Please install it with:\n"
+            "pip install 'elasticmapper @ git+https://github.com/uafgeotools/elasticmapper.git'\n\n"
+            "If you only need isotropic tomography features, this dependency is not required."
+        )
 
 def reference_coordinates(direction):
     """Coordinates for a vector pointing in a given geographical direction.
@@ -151,6 +163,12 @@ def transform(c_vec_1, basis_1):
     c_vec_2: ndarray of shape (21,)
         vector transformed to the new basis, represented in the final basis
     """
+    _check_elasticmapper_available()
+    
+    from elasticmapper.core.rotation import rotation_mat_6d
+    from elasticmapper.mapper_utils.change_of_basis import c_mat_of_t_mat, t_mat_of_c_mat
+    from elasticmapper.mapper_utils.utilities import v2sm, sm2v
+    
     basis_2 = "east_north_up" # Basis definition in SPECFEM3D_cartesian
 
     u_mat = get_transformation_matrix(basis_2, basis_1)
