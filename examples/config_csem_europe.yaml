@@ -46,6 +46,11 @@ generate_topography: true
 topography_output_dir: './meshfem3D_files'
 slope_thresholds: [10, 15, 20] # Diagnostic thresholds for slope in degrees. Lower value is used for 'auto' smoothing.
 smoothing_sigma: 'auto'  # Sigma for Gaussian smoothing of topography (default: 1, or 'auto' for adaptive smoothing)
+topo_res: 2000  # Optional: horizontal spacing (meters) - applies to both X and Y ...
+# ... and if not specified, resolution is determined by priority:
+#   1. User-specified topo_res (if provided)
+#   2. Mesh resolution (if generate_mesh is true)
+#   3. ETOPO1 highest resolution (~1800m)
 
 # Tomography output options
 tomo_output_dir: './tomo_files'  # Directory for tomography_model.xyz
