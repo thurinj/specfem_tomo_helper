@@ -95,6 +95,11 @@ def main():
             '      If smoothing_sigma is "auto", topography is smoothed until all slopes are below the minimum slope_threshold.\n'
             '      Otherwise, smoothing_sigma sets the smoothing before filtering by slope_thresholds.\n'
             '  filter_topography: true/false, whether to filter topography by slope.\n'
+            '  topo_res:          Optional explicit horizontal spacing (meters) for topography grid.\n'
+            '      If not specified, resolution is determined by priority:\n'
+            '        1. User-specified topo_res in m (if provided)\n'
+            '        2. Mesh resolution (if generate_mesh is true)\n'
+            '        3. ETOPO1 highest resolution (~1800m) - fallback\n'
             '\nOutput and other parameters:\n'
             '  tomo_output_dir:   Output directory for tomography files.\n'
             '  mesh_output_dir:   Output directory for mesh files.\n'
@@ -335,13 +340,18 @@ def main():
         mesh_arg = mesh if config.get('generate_mesh', False) else None
         neg_doubling_layers_km = [-dl for dl in config['doubling_layers']] if 'doubling_layers' in config else None
         doubling_layers_m = [dl * 1000.0 for dl in neg_doubling_layers_km] if neg_doubling_layers_km is not None else None
+        
+        # Get user-specified topography resolution if provided
+        topo_res = config.get('topo_res', None)
+        
         topo = TopographyProcessor(
             interpolator,
             gui_parameters.projection,
             save_dir=config['topography_output_dir'],
             smoothing_sigma=0 if smoothing_sigma == 'auto' else (smoothing_sigma or 0),
             mesh_processor=mesh_arg,
-            doubling_depth=doubling_layers_m if mesh_arg is None else None
+            doubling_depth=doubling_layers_m if mesh_arg is None else None,
+            topo_res=topo_res
         )
         if smoothing_sigma == 'auto':
             min_slope = min(config['slope_thresholds']) if config.get('slope_thresholds') else 10
