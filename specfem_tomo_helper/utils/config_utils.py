@@ -314,6 +314,11 @@ def validate_config(config):
         # Validate smoothing_sigma is positive if numeric
         if isinstance(config['smoothing_sigma'], (int, float)) and config['smoothing_sigma'] < 0:
             raise ConfigValidationError("smoothing_sigma must be >= 0 when numeric")
+        
+        # Optional: validate topography resolution parameter
+        if 'topo_res' in config:
+            if not isinstance(config['topo_res'], (int, float)) or config['topo_res'] <= 0:
+                raise ConfigValidationError("topo_res must be a positive number (in meters)")
     # Tomography output
     if 'tomo_output_dir' in config and not isinstance(config['tomo_output_dir'], str):
         raise ConfigValidationError("tomo_output_dir must be a string")

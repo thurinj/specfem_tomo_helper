@@ -23,7 +23,8 @@ class TopographyProcessor:
         save_dir: str = "./topography_analysis",
         smoothing_sigma: float = 1,
         mesh_processor: Optional[Any] = None,
-        doubling_depth: Optional[list] = None
+        doubling_depth: Optional[list] = None,
+        topo_res: Optional[float] = None
     ) -> None:
         """
         Initialize the TopographyProcessor.
@@ -42,11 +43,13 @@ class TopographyProcessor:
             MeshProcessor instance, if available.
         doubling_depth : Optional[list], optional
             List of doubling layer depths (in km, negative down; will be converted to meters internally if used).
+        topo_res : Optional[float], optional
+            Horizontal spacing (in meters) that controls the topo resolution.
+            If None, it will be determined from a priority hierarchy amongst several scenarios.
         """
         self.interpolator = interpolator
         self.utm_zone = getattr(myProj.crs, 'utm_zone', None)
-        self.x_interp = interpolator.x_interp_coordinates
-        self.y_interp = interpolator.y_interp_coordinates
+        self.myProj = myProj
         self.save_dir = save_dir
         self.smoothing_sigma = smoothing_sigma
         self.mesh_processor = mesh_processor
@@ -54,6 +57,77 @@ class TopographyProcessor:
         self.doubling_layers = [dl * 1000.0 for dl in doubling_depth] if doubling_depth is not None else None
         os.makedirs(self.save_dir, exist_ok=True)
         self.filename: Optional[str] = None
+        
+        # Determine topography grid resolution based on priority hierarchy
+        self.x_interp, self.y_interp = self._determine_topo_grid(topo_res)
+
+    def _determine_topo_grid(
+        self,
+        topo_res: Optional[float]
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Set the topography grid resolution based on priority hierarchy:
+        1. User-specified resolution (topo_res) - highest priority
+        2. Mesh resolution (if mesh_processor is available and has generated config)
+        3. ETOPO1 highest resolution (~1.8 km) - default
+
+        Parameters
+        ----------
+        topo_res : float, optional
+            User-specified horizontal spacing (meters).
+
+        Returns
+        -------
+        x_interp : np.ndarray
+            X coordinates for topography grid.
+        y_interp : np.ndarray
+            Y coordinates for topography grid.
+        """
+        # Get extent from interpolator
+        x_min = np.min(self.interpolator.x_interp_coordinates)
+        x_max = np.max(self.interpolator.x_interp_coordinates)
+        y_min = np.min(self.interpolator.y_interp_coordinates)
+        y_max = np.max(self.interpolator.y_interp_coordinates)
+        
+        res = None
+        source = None
+        
+        # Option 1: User-specified resolution (highest priority)
+        if topo_res is not None:
+            res = topo_res
+            source = "user-specified resolution"
+            logging.info(f"Using topography resolution from {source}: {res:.1f}m")
+        
+        # Option 2: Mesh resolution (if mesh is generated and user didn't specify)
+        if res is None and self.mesh_processor is not None and hasattr(self.mesh_processor, 'selected_config'):
+            config = self.mesh_processor.selected_config
+            if config is not None and 'dx' in config and 'dy' in config:
+                # Use average of dx and dy from mesh
+                res = (config['dx'] + config['dy']) / 2.0
+                source = "mesh configuration"
+                logging.info(f"Using topography resolution from {source}: {res:.1f}m")
+        
+        # Option 3: ETOPO1 native resolution (default)
+        if res is None:
+            # ETOPO1 is 1 arc-minute resolution
+            # At equator: 1 arc-minute ≈ 1852 m
+            # Use a conservative estimate that works at mid-latitudes
+            etopo_res = 1800.0  # meters
+            res = etopo_res
+            source = "ETOPO1 highest resolution (default)"
+            logging.info(f"Using topography resolution from {source}: {res:.1f}m")
+        
+        # Generate coordinate arrays
+        nx = int(np.round((x_max - x_min) / res)) + 1
+        ny = int(np.round((y_max - y_min) / res)) + 1
+        
+        x_interp = np.linspace(x_min, x_max, nx)
+        y_interp = np.linspace(y_min, y_max, ny)
+        
+        logging.info(f"Topography grid: {nx} × {ny} points (extent: {x_min:.1f} to {x_max:.1f} m, "
+                    f"{y_min:.1f} to {y_max:.1f} m)")
+        
+        return x_interp, y_interp
 
     def _show_progress(self, block_num, block_size, total_size):
         """
