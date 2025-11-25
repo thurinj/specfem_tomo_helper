@@ -93,12 +93,13 @@ def validate_config(config):
         if not isinstance(config[key], typ):
             raise ConfigValidationError(f"Config option '{key}' must be of type {typ}, got {type(config[key])}")
 
-    # Check if data_path exists
+    # Check if data_path exists (allow missing if model_url is provided for download)
     if not os.path.isfile(config['data_path']):
-        raise ConfigValidationError(
-            f"data_path '{config['data_path']}' "
-            f"does not exist or is not a file"
-        )
+        if 'model_url' not in config or config.get('model_url') is None:
+            raise ConfigValidationError(
+                f"data_path '{config['data_path']}' does not exist or is not a file, "
+                f"and no model_url provided for download"
+            )
 
     # Early validation of extent (before UTM logic that uses it)
     if 'extent' in config and config['extent'] is not None:
