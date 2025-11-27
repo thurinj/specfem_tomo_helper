@@ -57,6 +57,7 @@ class TopographyProcessor:
         self.doubling_layers = [dl * 1000.0 for dl in doubling_depth] if doubling_depth is not None else None
         os.makedirs(self.save_dir, exist_ok=True)
         self.filename: Optional[str] = None
+        self.last_auto_smooth: Optional[Dict[str, float]] = None
         
         # Determine topography grid resolution based on priority hierarchy
         self.x_interp, self.y_interp = self._determine_topo_grid(topo_res)
@@ -579,12 +580,51 @@ class TopographyProcessor:
     
     def auto_smooth_topography(self, Zi, Xi, Yi, min_slope, max_iter=50, dt=0.2):
         """
-        Iteratively apply explicit diffusion smoothing to Zi until all slopes are below min_slope.
-        Uses Neumann (zero-gradient) boundary conditions to avoid edge effects.
-        Returns the smoothed Zi.
+        Iteratively smooth topography using an explicit diffusion scheme.
+
+        Applies an explicit finite-difference diffusion operator to the input
+        topography `Zi` until all slopes are below `min_slope` or until
+        `max_iter` iterations are reached. Neumann (zero-gradient) boundary
+        conditions are enforced by padding the array with edge values.
+
+        Parameters
+        ----------
+        Zi : np.ndarray
+            2-D array of elevation values (meters).
+        Xi, Yi : np.ndarray
+            2-D meshgrid arrays with the same shape as `Zi` giving the
+            horizontal coordinates (meters).
+        min_slope : float
+            Maximum allowed slope in degrees. Iteration stops when all slopes
+            are less than or equal to this value.
+        max_iter : int, optional
+            Maximum number of diffusion iterations to perform (default: 50).
+        dt : float, optional
+            Time-step factor for the explicit diffusion update (default: 0.2).
+
+        Returns
+        -------
+        np.ndarray
+            Smoothed topography array with the same shape as `Zi`.
+
+        Notes
+        -----
+        The method records summary information about the smoothing run in
+        `self.last_auto_smooth` as a dictionary with keys `n_iter`, `dt`, `h`,
+        `sigma_pixels`, and `sigma_meters`. The equivalent Gaussian smoothing
+        (approximate) is computed from the diffusion interpretation::
+
+            sigma_pixels = sqrt(2 * dt * n_iter)
+            sigma_meters = sigma_pixels * h
+
+        where `h` is the horizontal grid spacing (meters) derived from
+        `Xi[0, 1] - Xi[0, 0]` and `n_iter` is the number of performed
+        iterations.
         """
         Zi_smoothed = Zi.copy()
-        for _ in range(max_iter):
+        n_iter = 0
+        h = float(Xi[0, 1] - Xi[0, 0])
+        for it in range(1, max_iter + 1):
             # Pad with edge values to enforce Neumann (zero-gradient) BCs
             Zi_pad = np.pad(Zi_smoothed, 1, mode='edge')
             laplacian = (
@@ -593,8 +633,29 @@ class TopographyProcessor:
                 4 * Zi_pad[1:-1, 1:-1]
             )
             Zi_smoothed += dt * laplacian
-            Yslope = self.calculate_slope(Zi_smoothed, Xi[0, 1] - Xi[0, 0], Yi[1, 0] - Yi[0, 0])
+            Yslope = self.calculate_slope(Zi_smoothed, h, float(Yi[1, 0] - Yi[0, 0]))
+            n_iter = it
             if np.all(Yslope <= min_slope):
                 break
+
+        # Compute equivalent Gaussian kernel's standard deviation (in pixels and meters)
+        sigma_pixels = np.sqrt(2.0 * dt * float(n_iter))
+        sigma_meters = sigma_pixels * h
+        info = {
+            'n_iter': int(n_iter),
+            'dt': float(dt),
+            'h': float(h),
+            'sigma_pixels': float(sigma_pixels),
+            'sigma_meters': float(sigma_meters)
+        }
+
+        # Store last auto-smooth info on the instance for external inspection
+        self.last_auto_smooth = info
+
+        logging.info(
+            f"Auto-smooth completed: iterations={info['n_iter']}, dt={info['dt']}, h={info['h']:.2f} m, "
+            f"sigma_pixels={info['sigma_pixels']:.3f}, sigma_meters={info['sigma_meters']:.1f} m"
+        )
+
         return Zi_smoothed
 

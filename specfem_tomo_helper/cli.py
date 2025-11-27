@@ -357,6 +357,14 @@ def main():
             min_slope = min(config['slope_thresholds']) if config.get('slope_thresholds') else 10
             Xi, Yi, Zi = topo.interpolate_topography()
             Zi_smoothed = topo.auto_smooth_topography(Zi, Xi, Yi, min_slope)
+            auto_info = getattr(topo, 'last_auto_smooth', None)
+            if auto_info is not None:
+                print("Auto-smoothing complete:")
+                print(f"  iterations = {auto_info['n_iter']}")
+                print(f"  dt = {auto_info['dt']}")
+                print(f"  grid spacing h = {auto_info['h']:.2f} m")
+                print(f"  equivalent Gaussian stdev. = {auto_info['sigma_pixels']:.3f} pixels ({auto_info['sigma_meters']:.1f} m)")
+            # override interpolate_topography to return the smoothed result
             def interpolate_topography_override():
                 return Xi, Yi, Zi_smoothed
             topo.interpolate_topography = interpolate_topography_override
