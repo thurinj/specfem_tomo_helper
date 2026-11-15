@@ -3,7 +3,7 @@
 import pytest
 import tempfile
 import os
-import yaml
+from ruamel.yaml import YAML
 from unittest.mock import Mock, patch
 import numpy as np
 
@@ -213,7 +213,8 @@ class TestAnisotropicWorkflow:
             
             # Check content of generated file
             with open(output_file, 'r') as f:
-                config = yaml.safe_load(f)
+                yaml = YAML()
+                config = yaml.load(f)
 
             # Verify it contains the parameter basis
             assert 'basis' in config
