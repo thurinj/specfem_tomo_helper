@@ -19,7 +19,7 @@ import numpy as np
 def _check_elasticmapper_available():
     """Check if elasticmapper is available and raise an error if not."""
     try:
-        import elasticmapper.core.rotation
+        import elasticmapper.mapper_core.rotation
         import elasticmapper.mapper_utils.change_of_basis
         import elasticmapper.mapper_utils.utilities
         return True
@@ -165,7 +165,7 @@ def transform(c_vec_1, basis_1):
     """
     _check_elasticmapper_available()
     
-    from elasticmapper.core.rotation import rotation_mat_6d
+    from elasticmapper.mapper_core.rotation import rotation_mat_6d
     from elasticmapper.mapper_utils.change_of_basis import c_mat_of_t_mat, t_mat_of_c_mat
     from elasticmapper.mapper_utils.utilities import v2sm, sm2v
     
