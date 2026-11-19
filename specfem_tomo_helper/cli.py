@@ -242,82 +242,254 @@ def main():
         gui_parameters.projection = myProj
 
     interpolator = trilinear_interpolator(nc_model, gui_parameters.projection)
-    interpolator.interpolation_parameters(extent[0], extent[1], dx,
-                                          extent[2], extent[3], dy,
-                                          z_min, z_max, dz)
+    variable_spacing = config.get(
+        'variable_spacing',
+        config.get('variable_spacing_in_depth', False)
+    )
+
+    interpolator.interpolation_parameters(
+        extent[0], extent[1], dx,
+        extent[2], extent[3], dy,
+        z_min, z_max, dz,
+        variable_spacing=variable_spacing
+    )
+
 
     variables = config['variable']
+    
     if isinstance(variables, str):
         variables = [variables]
+    attenuation = config.get(
+        'Attenuation',
+        config.get('attenuation', False)
+    )
 
+    attenuation = bool(attenuation)
+    
     is_anisotropic = is_anisotropic_model(variables)
+    
+    var_lower = [
+        v.lower()
+        for v in variables
+        if isinstance(v, str)
+    ]
+
+    if attenuation:
+        missing_attenuation = [
+            v for v in ['qp', 'qs']
+            if v not in var_lower
+        ]
+
+        if missing_attenuation:
+            raise ConfigValidationError(
+                "Attenuation is enabled, but the following "
+                f"variables are missing from 'variable': "
+                f"{missing_attenuation}. "
+                "Please include qp and qs."
+            )
+
     var_arrays = []
     var_names = []
+
     if is_anisotropic:
-        verbose_print("Detected anisotropic model - processing full stiffness tensor")
+        verbose_print(
+            "Detected anisotropic model - processing "
+            "full stiffness tensor"
+        )
+
         validate_anisotropic_variables(variables)
+
         for v in variables:
-            arr = nc_model.load_variable(v, fill_nan=config.get('fill_nan', 'vertical'))
+            arr = nc_model.load_variable(
+                v,
+                fill_nan=config.get(
+                    'fill_nan',
+                    'vertical'
+                )
+            )
+
             var_arrays.append(arr)
             var_names.append(v.lower())
+
     else:
+
         def canonical_var_name(name):
             name = name.lower()
-            if 'vs' in name:
+
+            if name == 'vs':
                 return 'vs'
-            if 'vp' in name:
+
+            if name == 'vp':
                 return 'vp'
-            if 'rho' in name or 'density' in name:
+
+            if name in ('rho', 'density'):
                 return 'rho'
+
+            if name == 'qp':
+                return 'qp'
+
+            if name == 'qs':
+                return 'qs'
+
             return name
+
         for v in variables:
-            arr = nc_model.load_variable(v, fill_nan=config.get('fill_nan', 'vertical'))
+            arr = nc_model.load_variable(
+                v,
+                fill_nan=config.get(
+                    'fill_nan',
+                    'vertical'
+                )
+            )
+
             var_arrays.append(arr)
-            var_names.append(canonical_var_name(v))
+            var_names.append(
+                canonical_var_name(v)
+            )
+
 
     interpolated = interpolator.interpolate(var_arrays)
     coordinates = interpolated[:, 0:3]
     if is_anisotropic:
-        param = interpolated[:, 3:]
-        # apply coordinate transformation if needed
-        basis = config['basis']
-        if basis is not None:
-            if basis.lower() != "east_north_up":
-                verbose_print(
-                    f"Transforming coordinates from basis: '{basis}' to"
-                    f" basis: 'east_north_up'"
-                )
-                from specfem_tomo_helper.utils.change_of_basis import transform
-                for i, c_vec in enumerate(param[:, :-1]):
-                    param[i, :-1] = transform(c_vec, basis)
-        tomo = np.hstack((coordinates, param))
-    else:
-        param_dict = {name: interpolated[:, 3 + i] for i, name in enumerate(var_names)}
-        if 'vp' not in param_dict and 'vs' in param_dict:
-            param_dict['vp'] = vs2vp(param_dict['vs'])
-        if 'vs' not in param_dict and 'vp' in param_dict:
-            param_dict['vs'] = vp2vs(param_dict['vp'])
-        if 'rho' not in param_dict and 'vp' in param_dict:
-            param_dict['rho'] = vp2rho(param_dict['vp'])
-        output_params = []
-        for key in ['vp', 'vs', 'rho']:
-            if key in param_dict:
-                output_params.append(param_dict[key])
-            else:
-                output_params.append(np.full(coordinates.shape[0], np.nan))
+
+        # ---------------------------------------------------------
+        # Anisotropic model
+        #
+        # Output order:
+        # x, y, z,
+        # c11 ... c66,
+        # rho,
+        # qp, qs   [if attenuation is enabled]
+        # ---------------------------------------------------------
+
+        param_dict = {
+            name: interpolated[:, 3 + i]
+            for i, name in enumerate(var_names)
+        }
+
+        cij_order = [
+            'c11', 'c12', 'c13', 'c14', 'c15', 'c16',
+            'c22', 'c23', 'c24', 'c25', 'c26',
+            'c33', 'c34', 'c35', 'c36',
+            'c44', 'c45', 'c46',
+            'c55', 'c56',
+            'c66'
+        ]
+
+        output_params = [
+            param_dict[cij]
+            for cij in cij_order
+        ]
+
+        # Density always follows the Cij values.
+        output_params.append(
+            param_dict['rho']
+        )
+
+        # Attenuation parameters follow density.
+        if attenuation:
+            output_params.extend([
+                param_dict['qp'],
+                param_dict['qs']
+            ])
+
         param = np.vstack(output_params).T
-        tomo = np.hstack((coordinates, param))
+
+        # ---------------------------------------------------------
+        # Coordinate transformation
+        #
+        # Transform only the 21 stiffness tensor components.
+        # rho, qp and qs must NOT be transformed.
+        # ---------------------------------------------------------
+        basis = config.get('basis')
+
+        if (
+            basis is not None and
+            basis.lower() != "east_north_up"
+        ):
+            verbose_print(
+                f"Transforming stiffness tensor from basis "
+                f"'{basis}' to 'east_north_up'"
+            )
+
+            from specfem_tomo_helper.utils.change_of_basis import transform
+
+            for i in range(param.shape[0]):
+                param[i, :21] = transform(
+                    param[i, :21],
+                    basis
+                )
+
+        tomo = np.hstack((
+            coordinates,
+            param
+        ))
+
+    else:
+
+        # ---------------------------------------------------------
+        # Isotropic model
+        #
+        # Output order:
+        # x, y, z, vp, vs, rho
+        #
+        # With attenuation:
+        # x, y, z, vp, vs, rho, qp, qs
+        # ---------------------------------------------------------
+
+        param_dict = {
+            name: interpolated[:, 3 + i]
+            for i, name in enumerate(var_names)
+        }
+
+        # Derive missing elastic parameters as before.
+        if 'vp' not in param_dict and 'vs' in param_dict:
+            param_dict['vp'] = vs2vp(
+                param_dict['vs']
+            )
+
+        if 'vs' not in param_dict and 'vp' in param_dict:
+            param_dict['vs'] = vp2vs(
+                param_dict['vp']
+            )
+
+        if 'rho' not in param_dict and 'vp' in param_dict:
+            param_dict['rho'] = vp2rho(
+                param_dict['vp']
+            )
+
+        output_params = [
+            param_dict['vp'],
+            param_dict['vs'],
+            param_dict['rho']
+        ]
+
+        if attenuation:
+            output_params.extend([
+                param_dict['qp'],
+                param_dict['qs']
+            ])
+
+        param = np.vstack(
+            output_params
+        ).T
+
+        tomo = np.hstack((
+            coordinates,
+            param
+        ))
+
 
     tomo_output_dir = config.get('tomo_output_dir', './')
     os.makedirs(tomo_output_dir, exist_ok=True)
     verbose_print(f"Writing tomography files to: {tomo_output_dir}")
     if is_anisotropic:
         float_format = config.get('float_format', '%.8f')
-        write_anisotropic_tomo_file(tomo, interpolator, tomo_output_dir, float_format=float_format)
+        write_anisotropic_tomo_file(tomo, interpolator, tomo_output_dir, float_format=float_format, attenuation=attenuation)
         print(f"Anisotropic tomography files written to: {tomo_output_dir}")
         print("WARNING: Cij values in the output file have been converted to SI units (Pa)!")
     else:
-        write_tomo_file(tomo, interpolator, tomo_output_dir)
+        write_tomo_file(tomo, interpolator, tomo_output_dir, attenuation=attenuation)
         print(f"Tomography files written to: {tomo_output_dir}")
 
     # --- Mesh Generation (identical for both cases) ---

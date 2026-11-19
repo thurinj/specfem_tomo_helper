@@ -44,6 +44,9 @@ variable:
   - 'c56'
   - 'c66'
   - 'rho'
+  - 'qp'
+  - 'qs'
+  
 
 # How to fill NaNs: 'vertical' or null
 fill_nan: 'vertical'
@@ -75,6 +78,27 @@ smoothing_sigma: 'auto'
 #   1. User-specified topo_res (if provided)
 #   2. Mesh resolution (if generate_mesh is true)
 #   3. ETOPO1 highest resolution (~1800m)
+
+# Enable attenuation parameters Qp and Qs.
+#
+# When true:
+#   Isotropic output:
+#       x, y, z, vp, vs, rho, qp, qs
+#
+#   Anisotropic output:
+#       x, y, z, c11, ..., c66, rho, qp, qs
+#
+Attenuation: true
+
+# Preserve the depth coordinates from the input model.
+#
+# false:
+#   Generate a uniform depth grid using dz.
+#
+# true:
+#   Use the actual depth coordinates from the EMC NetCDF model.
+#
+variable_spacing: true
 
 # Tomography output options
 tomo_output_dir: './DATA/tomo_files'
